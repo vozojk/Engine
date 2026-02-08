@@ -5,6 +5,11 @@
 // Put this at the top of your main.cpp or protocol.h
 
 #include <cstdint>
+#include <vector>
+
+// A Lookup Table: Index = Locate ID, Value = Stock Symbol
+// 65536 is enough for all US stocks (max is usually ~12,000)
+std::vector<std::string> stock_directory(65536);
 
 // 1. Swap 16-bit (2 bytes) - used for Lengths and Message Types
 uint16_t bswap16(uint16_t x) {
@@ -51,6 +56,7 @@ int main() {
         file.read(reinterpret_cast<char*>(&header), sizeof(header)); //read the header part and create the object
 
         if (file.gcount() == 0) break; //check if there was something
+        header.Length = bswap16(header.Length);
 
         switch (header.MessageType) {
             // switch for message type
@@ -58,7 +64,7 @@ int main() {
             case ('S'):{
                 SystemEvent event; //creates struct
                 event.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&event.StockLocate), bswap16(header.Length) - 1);
+                file.read(reinterpret_cast<char*>(&event.StockLocate), header.Length - 1);
                 //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
                 //since we assigned the type manually (1 byte), we need to read length-1 bytes more
 
@@ -67,18 +73,37 @@ int main() {
                 event.TrackingNumber = bswap16(event.TrackingNumber);
                 uint64_t timestamp = parseTimestamp(event.Timestamp);
 
-                //print for debug...
+                //print for debug... no need to swap StockLocate since its 0
                 std::cout << "The type is " << event.MessageType << ", the locate is " << event.StockLocate
                 << ", the tracking number is " << event.TrackingNumber << ", the time was "
                 << timestamp << ", the event code is " << event.EventCode << "." << std::endl;
 
                 break;
             }
+            case ('R'): {
+                StockDirectory msg;
+                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
+                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
+                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
+                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+
+                //reverse all integers, endianness
+                msg.StockLocate = bswap16(msg.StockLocate);
+                msg.TrackingNumber = bswap16(msg.TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg.Timestamp);
+                msg.RoundLotSize = bswap32(msg.RoundLotSize);
+                msg.ETPLeverageFactor = bswap32(msg.ETPLeverageFactor);
+                //convert stock to a string
+                std::string symbol(msg.Stock, 8);
+                std::cout << msg.StockLocate << " stands for " << symbol << std::endl;
+                stock_directory[msg.StockLocate] = symbol;
+                break;
+            }
 
             default: {
                 //std::cout << "Unrecognized message type skipping..." << std::endl;
 
-                file.seekg(bswap16(header.Length) - 1, std::ios::cur);
+                file.seekg(header.Length - 1, std::ios::cur);
                 //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
                 //since we assigned the type manually (1 byte), we need to read length-1 bytes more
                 break;
