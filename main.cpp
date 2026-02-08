@@ -94,9 +94,28 @@ int main() {
                 msg.RoundLotSize = bswap32(msg.RoundLotSize);
                 msg.ETPLeverageFactor = bswap32(msg.ETPLeverageFactor);
                 //convert stock to a string
-                std::string symbol(msg.Stock, 8);
+                std::string symbol(msg.Stock, 8); //slow but will keep for now
                 std::cout << msg.StockLocate << " stands for " << symbol << std::endl;
                 stock_directory[msg.StockLocate] = symbol;
+                break;
+            }
+
+            case ('A'): {
+                AddOrder msg;
+                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
+                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
+                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
+                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+
+                //reverse all integers, endianness
+                msg.StockLocate = bswap16(msg.StockLocate);
+                msg.TrackingNumber = bswap16(msg.TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg.Timestamp);
+                msg.OrderReferenceNumber = bswap64(msg.OrderReferenceNumber);
+                msg.Shares = bswap32(msg.Shares);
+                msg.Price = bswap32(msg.Price);
+                std::cout << "Sent " << msg.BuySell << " order for " << msg.Shares << " shares of "
+                        << stock_directory[msg.StockLocate] << " at the price of " << (msg.Price/1000) << "." << msg.Price%1000 << std::endl;
                 break;
             }
 
