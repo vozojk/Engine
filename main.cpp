@@ -6,10 +6,14 @@
 
 #include <cstdint>
 #include <vector>
+#include <chrono> // <--- THE HEADER
+using namespace std::chrono;
+using namespace std;
 
 // A Lookup Table: Index = Locate ID, Value = Stock Symbol
 // 65536 is enough for all US stocks (max is usually ~12,000)
 std::vector<std::string> stock_directory(65536);
+int counter = 0;
 
 // 1. Swap 16-bit (2 bytes) - used for Lengths and Message Types
 uint16_t bswap16(uint16_t x) {
@@ -49,15 +53,16 @@ int main() {
     }
 
     std::cout << "ENGINE STARTING!" << std::endl;
-
-    while (file) {
+    auto start_time = high_resolution_clock::now(); //start clock
+    while (counter < 1000000) { //switch to while (file) for full file
 
         MessageHeader header;
         file.read(reinterpret_cast<char*>(&header), sizeof(header)); //read the header part and create the object
 
         if (file.gcount() == 0) break; //check if there was something
         header.Length = bswap16(header.Length);
-
+        //count for latency measurements
+        counter++;
         switch (header.MessageType) {
             // switch for message type
 
@@ -74,9 +79,9 @@ int main() {
                 uint64_t timestamp = parseTimestamp(event.Timestamp);
 
                 //print for debug... no need to swap StockLocate since its 0
-                std::cout << "The type is " << event.MessageType << ", the locate is " << event.StockLocate
-                << ", the tracking number is " << event.TrackingNumber << ", the time was "
-                << timestamp << ", the event code is " << event.EventCode << "." << std::endl;
+                //std::cout << "The type is " << event.MessageType << ", the locate is " << event.StockLocate
+                //<< ", the tracking number is " << event.TrackingNumber << ", the time was "
+                //<< timestamp << ", the event code is " << event.EventCode << "." << std::endl;
 
                 break;
             }
@@ -96,7 +101,7 @@ int main() {
                 //convert stock to a string
                 std::string symbol(msg.Stock, 8); //slow but will keep for now
 
-                std::cout << msg.StockLocate << " stands for " << symbol << std::endl;
+                //std::cout << msg.StockLocate << " stands for " << symbol << std::endl;
                 stock_directory[msg.StockLocate] = symbol;
 
                 break;
@@ -174,7 +179,7 @@ int main() {
                 msg.ExecutedShares = bswap32(msg.ExecutedShares);
                 msg.MatchNumber = bswap64(msg.MatchNumber); //unique
 
-                std::cout << "Executed order for " << msg.ExecutedShares << " of " << stock_directory[msg.StockLocate] << std::endl;
+                //std::cout << "Executed order for " << msg.ExecutedShares << " of " << stock_directory[msg.StockLocate] << std::endl;
                 break;
             }
 
@@ -194,8 +199,8 @@ int main() {
                 msg.MatchNumber = bswap64(msg.MatchNumber); //unique
                 msg.ExecutionPrice = bswap32(msg.ExecutionPrice);
 
-                std::cout << "Executed order for " << msg.ExecutedShares << " of " << stock_directory[msg.StockLocate]
-                << "at " << msg.ExecutionPrice/1000 << "." << msg.ExecutionPrice%1000 << std::endl;
+                //std::cout << "Executed order for " << msg.ExecutedShares << " of " << stock_directory[msg.StockLocate]
+                //<< "at " << msg.ExecutionPrice/1000 << "." << msg.ExecutionPrice%1000 << std::endl;
                 break;
             }
 
@@ -245,5 +250,24 @@ int main() {
             }
         }
     }
+    // --- STOP TIMER ---
+    auto end_time = high_resolution_clock::now();
+
+    // 2. Calculate Duration
+    // We cast the difference to specific units (microseconds, nanoseconds, milliseconds)
+    auto duration_us = duration_cast<microseconds>(end_time - start_time);
+    auto duration_ns = duration_cast<nanoseconds>(end_time - start_time);
+
+    // 3. The Adrenaline Report
+    cout << "------------------------------------------------" << endl;
+    cout << "Processed " << counter << " messages." << endl;
+    cout << "Total Time: " << duration_us.count() << " microseconds ("
+         << duration_us.count() / 1000.0 << " ms)" << endl;
+
+    // The "HFT" Metric: Time per message
+    double ns_per_msg = (double)duration_ns.count() / counter;
+    cout << "Latency: " << ns_per_msg << " ns/msg" << endl;
+    cout << "Throughput: " << (counter / (duration_us.count() / 1000000.0)) << " msgs/sec" << endl;
+    cout << "------------------------------------------------" << endl;
 
 }
