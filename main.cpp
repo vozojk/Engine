@@ -1,7 +1,6 @@
 #include <iostream>
 #include <fstream>
 #include "ITCH_Messages.hpp"
-
 // Put this at the top of your main.cpp or protocol.h
 
 #include <cstdint>
@@ -42,7 +41,7 @@ uint64_t parseTimestamp(uint8_t* x) {
 
 // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
 int main() {
-
+    std::vector<char> v(2000000000); //20 mil bytes
     //move the binary file to RAM (drive -> kernel cache(in RAM))
     std::ifstream file("/home/vozojk/THE THING/market.bin", std::ios::binary);
 
@@ -52,203 +51,186 @@ int main() {
         return -1;
     }
 
+
+    file.read(v.data(), v.size()); //read file into one big array, lowers syscalls which are slow
+    char* ptr = &v[0];
+    char* start = ptr;
+    //no check for size so far (file is 2gb)
+
     std::cout << "ENGINE STARTING!" << std::endl;
     auto start_time = high_resolution_clock::now(); //start clock
-    while (counter < 1000000) { //switch to while (file) for full file
-
-        MessageHeader header;
-        file.read(reinterpret_cast<char*>(&header), sizeof(header)); //read the header part and create the object
-
-        if (file.gcount() == 0) break; //check if there was something
-        header.Length = bswap16(header.Length);
-        //count for latency measurements
+    while (ptr-start < 1024*1024*16) { //switch to while (file) for full file, checks for end of file
         counter++;
-        switch (header.MessageType) {
+        MessageHeader* headerPtr = reinterpret_cast<MessageHeader*>(ptr);
+        ptr += 2;
+
+        //file.read(reinterpret_cast<char*>(&header), sizeof(header)); //read the header part and create the object
+
+        uint16_t length = bswap16(headerPtr -> Length);
+
+        switch (headerPtr -> MessageType) {
             // switch for message type
 
             case ('S'):{
-                SystemEvent event; //creates struct
-                event.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&event.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                SystemEvent* event = reinterpret_cast<SystemEvent*>(ptr);; //creates struct
+                 //assigns type since it got eaten by the header
 
 
                 //endianness swaps
-                event.TrackingNumber = bswap16(event.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(event.Timestamp);
+                event -> TrackingNumber = bswap16(event -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(event -> Timestamp);
 
                 //print for debug... no need to swap StockLocate since its 0
-                //std::cout << "The type is " << event.MessageType << ", the locate is " << event.StockLocate
-                //<< ", the tracking number is " << event.TrackingNumber << ", the time was "
-                //<< timestamp << ", the event code is " << event.EventCode << "." << std::endl;
+                //std::cout << "The type is " << event -> MessageType << ", the locate is " << event -> StockLocate
+                //<< ", the tracking number is " << event -> TrackingNumber << ", the time was "
+                //<< timestamp << ", the event code is " << event -> EventCode << "." << std::endl;
 
                 break;
             }
             case ('R'): {
-                StockDirectory msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
+                StockDirectory* msg;
+
+                msg = reinterpret_cast<StockDirectory*>(ptr);
                 //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
                 //since we assigned the type manually (1 byte), we need to read length-1 bytes more
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.RoundLotSize = bswap32(msg.RoundLotSize);
-                msg.ETPLeverageFactor = bswap32(msg.ETPLeverageFactor);
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> RoundLotSize = bswap32(msg -> RoundLotSize);
+                msg -> ETPLeverageFactor = bswap32(msg -> ETPLeverageFactor);
                 //convert stock to a string
-                std::string symbol(msg.Stock, 8); //slow but will keep for now
+                std::string symbol(msg -> Stock, 8); //slow but will keep for now
 
-                //std::cout << msg.StockLocate << " stands for " << symbol << std::endl;
-                stock_directory[msg.StockLocate] = symbol;
+                //std::cout << msg -> StockLocate << " stands for " << symbol << std::endl;
+                stock_directory[msg -> StockLocate] = symbol;
 
                 break;
             }
 
             case ('A'): {
-                AddOrder msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
+                AddOrder* msg;
+                msg = reinterpret_cast<AddOrder*>(ptr);
+
                 //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
                 //since we assigned the type manually (1 byte), we need to read length-1 bytes more
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.OrderReferenceNumber = bswap64(msg.OrderReferenceNumber);
-                msg.Shares = bswap32(msg.Shares);
-                msg.Price = bswap32(msg.Price);
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> OrderReferenceNumber = bswap64(msg -> OrderReferenceNumber);
+                msg -> Shares = bswap32(msg -> Shares);
+                msg -> Price = bswap32(msg -> Price);
 
-                //std::cout << "Sent " << msg.BuySell << " order for " << msg.Shares << " shares of "
-                //        << stock_directory[msg.StockLocate] << " at the price of " << (msg.Price/1000) << "." << msg.Price%1000 << std::endl;
+                //std::cout << "Sent " << msg -> BuySell << " order for " << msg -> Shares << " shares of "
+                //        << stock_directory[msg -> StockLocate] << " at the price of " << (msg -> Price/1000) << " -> " << msg -> Price%1000 << std::endl;
 
                 break;
             }
 
             case ('F'): {
-                AddOrderWithMPID msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                AddOrderWithMPID* msg;
+                msg = reinterpret_cast<AddOrderWithMPID*>(ptr);
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.OrderReferenceNumber = bswap64(msg.OrderReferenceNumber);
-                msg.Shares = bswap32(msg.Shares);
-                msg.Price = bswap32(msg.Price);
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> OrderReferenceNumber = bswap64(msg -> OrderReferenceNumber);
+                msg -> Shares = bswap32(msg -> Shares);
+                msg -> Price = bswap32(msg -> Price);
 
-                //std::cout << "Sent " << msg.BuySell << " order for " << msg.Shares << " shares of "
-                //        << stock_directory[msg.StockLocate] << " at the price of " << (msg.Price/1000) << "." << msg.Price%1000 << std::endl;
+                //std::cout << "Sent " << msg -> BuySell << " order for " << msg -> Shares << " shares of "
+                //        << stock_directory[msg -> StockLocate] << " at the price of " << (msg -> Price/1000) << " -> " << msg -> Price%1000 << std::endl;
 
                 break;
             }
 
             case ('H'): {
-                StockTradingAction msg;
-
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                StockTradingAction* msg;
+                msg = reinterpret_cast<StockTradingAction*>(ptr);
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
                 break;
             }
 
             case ('E'): { //really cool how theres basically no executions compared to adds, todo measure this
-                OrderExecuted msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                OrderExecuted* msg;
+                msg = reinterpret_cast<OrderExecuted*>(ptr);
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.OrderReferenceNumber = bswap64(msg.OrderReferenceNumber); //not really necessary, unique anyway
-                msg.ExecutedShares = bswap32(msg.ExecutedShares);
-                msg.MatchNumber = bswap64(msg.MatchNumber); //unique
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> OrderReferenceNumber = bswap64(msg -> OrderReferenceNumber); //not really necessary, unique anyway
+                msg -> ExecutedShares = bswap32(msg -> ExecutedShares);
+                msg -> MatchNumber = bswap64(msg -> MatchNumber); //unique
 
-                //std::cout << "Executed order for " << msg.ExecutedShares << " of " << stock_directory[msg.StockLocate] << std::endl;
+                //std::cout << "Executed order for " << msg -> ExecutedShares << " of " << stock_directory[msg -> StockLocate] << std::endl;
                 break;
             }
 
             case ('C'): { //really cool how theres basically no executions compared to adds, todo measure this
-                OrderExecutedWithPrice msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                OrderExecutedWithPrice* msg;
+                msg = reinterpret_cast<OrderExecutedWithPrice*>(ptr);
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.OrderReferenceNumber = bswap64(msg.OrderReferenceNumber); //not really necessary, unique anyway
-                msg.ExecutedShares = bswap32(msg.ExecutedShares);
-                msg.MatchNumber = bswap64(msg.MatchNumber); //unique
-                msg.ExecutionPrice = bswap32(msg.ExecutionPrice);
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> OrderReferenceNumber = bswap64(msg -> OrderReferenceNumber); //not really necessary, unique anyway
+                msg -> ExecutedShares = bswap32(msg -> ExecutedShares);
+                msg -> MatchNumber = bswap64(msg -> MatchNumber); //unique
+                msg -> ExecutionPrice = bswap32(msg -> ExecutionPrice);
 
-                //std::cout << "Executed order for " << msg.ExecutedShares << " of " << stock_directory[msg.StockLocate]
-                //<< "at " << msg.ExecutionPrice/1000 << "." << msg.ExecutionPrice%1000 << std::endl;
+                //std::cout << "Executed order for " << msg -> ExecutedShares << " of " << stock_directory[msg -> StockLocate]
+                //<< "at " << msg -> ExecutionPrice/1000 << " -> " << msg -> ExecutionPrice%1000 << std::endl;
                 break;
             }
 
             case ('D'): {
-                OrderCancel msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                OrderCancel* msg;
+                msg = reinterpret_cast<OrderCancel*>(ptr);
 
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.OrderReferenceNumber = bswap64(msg.OrderReferenceNumber); //not really necessary, unique anyway
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> OrderReferenceNumber = bswap64(msg -> OrderReferenceNumber); //not really necessary, unique anyway
 
-                //std::cout << "Canceled order for " << stock_directory[msg.StockLocate] << std::endl;
+                //std::cout << "Canceled order for " << stock_directory[msg -> StockLocate] << std::endl;
 
                 break;
             }
 
             case ('U'): {
-                OrderReplace msg;
-                msg.MessageType = header.MessageType; //assigns type since it got eaten by the header
-                file.read(reinterpret_cast<char*>(&msg.StockLocate), header.Length - 1);
-                //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
-                //since we assigned the type manually (1 byte), we need to read length-1 bytes more
+                OrderReplace* msg;
 
+                msg = reinterpret_cast<OrderReplace*>(ptr);
                 //reverse all integers, endianness
-                msg.StockLocate = bswap16(msg.StockLocate);
-                msg.TrackingNumber = bswap16(msg.TrackingNumber);
-                uint64_t timestamp = parseTimestamp(msg.Timestamp);
-                msg.OriginalOrderReferenceNumber = bswap64(msg.OriginalOrderReferenceNumber); //not really necessary, unique anyway
-                msg.Shares = bswap32(msg.Shares);
-                msg.Price = bswap32(msg.Price);
+                msg -> StockLocate = bswap16(msg -> StockLocate);
+                msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                msg -> OriginalOrderReferenceNumber = bswap64(msg -> OriginalOrderReferenceNumber); //not really necessary, unique anyway
+                msg -> Shares = bswap32(msg -> Shares);
+                msg -> Price = bswap32(msg -> Price);
                 break;
             }
 
 
             default: {
                 //std::cout << "Unrecognized message type skipping..." << std::endl;
-
-                file.seekg(header.Length - 1, std::ios::cur);
                 //the whole length of each is sizeof(length)+sizeof(event), but the length variable only has sizeof(event)
                 //since we assigned the type manually (1 byte), we need to read length-1 bytes more
                 break;
             }
         }
+        ptr += length;
     }
     // --- STOP TIMER ---
     auto end_time = high_resolution_clock::now();
@@ -265,9 +247,21 @@ int main() {
          << duration_us.count() / 1000.0 << " ms)" << endl;
 
     // The "HFT" Metric: Time per message
-    double ns_per_msg = (double)duration_ns.count() / counter;
+    double ns_per_msg = (long double)duration_ns.count() / counter;
     cout << "Latency: " << ns_per_msg << " ns/msg" << endl;
     cout << "Throughput: " << (counter / (duration_us.count() / 1000000.0)) << " msgs/sec" << endl;
     cout << "------------------------------------------------" << endl;
+
+    // 1. Generate a runtime index based on the counter (compiler can't predict this)
+    size_t random_index = counter % v.size();
+
+    // 2. Read from the buffer
+    volatile char check = v[random_index];
+
+    // 3. Print it (Forces the read to be real)
+    std::cout << "Sanity Check (Random Byte): " << (int)check << std::endl;
+    //this is genuinely crazy what everything does the computer do and i dont have the slightest clue
+    // it was at 5ns and i added this print and now its 13ns, just because the compiler is so smart it just skips
+    //everything it doesnt need.
 
 }
