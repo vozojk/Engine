@@ -13,4 +13,7 @@ endif()
 
 # We will add files here as we create them
 add_executable(THE_THING main.cpp
-        ITCH_Messages.hpp)
+        ITCH_Messages.hpp
+        Order_Book.cpp
+        Order_Book.hpp
+        Types.hpp)
