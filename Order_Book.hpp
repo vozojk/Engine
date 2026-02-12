@@ -27,6 +27,9 @@ public:
 
     void executeOrder(uint64_t OrderID, uint64_t Shares);
 
+    //for non displayable orders, since they have no add order messages, cant
+    //substract when they get executed, therefore not used just for the book
+    //can use later to show hidden liquidity or market sentiment
     void executeTrade(uint32_t Price, uint64_t Shares);
 
     ~OrderBook();
