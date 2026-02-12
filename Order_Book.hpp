@@ -17,7 +17,7 @@ class OrderBook {
     std::unordered_map<uint64_t, std::list<Order*>::iterator> Orders;
 
 public:
-    void addOrder(uint64_t Shares,
+    void addOrder(uint32_t Shares,
                     uint64_t OrderID,
                     uint16_t StockLocate,
                     char BuySell,
@@ -25,12 +25,17 @@ public:
 
     void cancelOrder(uint64_t OrderID);
 
-    void executeOrder(uint64_t OrderID, uint64_t Shares);
+    void executeOrder(uint64_t OrderID, uint32_t Shares);
 
     //for non displayable orders, since they have no add order messages, cant
     //substract when they get executed, therefore not used just for the book
     //can use later to show hidden liquidity or market sentiment
-    void executeTrade(uint32_t Price, uint64_t Shares);
+    void executeTrade(uint32_t Price, uint32_t Shares);
+
+    void replaceOrder(const uint64_t oldOrderID,
+                        uint64_t newOrderID,
+                        uint32_t Shares,
+                        uint32_t Price);
 
     ~OrderBook();
 

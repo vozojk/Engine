@@ -16,4 +16,5 @@ add_executable(THE_THING main.cpp
         ITCH_Messages.hpp
         Order_Book.cpp
         Order_Book.hpp
-        Types.hpp)
+        Types.hpp
+        Parser.hpp)

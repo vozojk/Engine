@@ -63,7 +63,6 @@ void cancelOrder(uint64_t OrderID) {
 //apparently the CPU keeps history of function calls and what happened after and makes predictions based on that
 //by separating them i make it more deterministic, the cpu will be right more often
 void executeOrder(uint64_t OrderID, uint64_t executedShares) {
-
         auto hashIt = Orders.find(OrderID); //gives an iterator for the key value pair in the hashmap
 
         if (hashIt == Orders.end()) return;
@@ -96,9 +95,51 @@ void executeOrder(uint64_t OrderID, uint64_t executedShares) {
                         Bids.erase(Price);
                 }
         }
+}
 
+void replaceOrder(const uint64_t oldOrderID,
+                        const uint64_t newOrderID,
+                        const uint32_t Shares,
+                        const uint32_t Price) {
+        //we need to delete and add because replace resets time priority
 
+        auto hashIt = Orders.find(oldOrderID); //gives an iterator for the key value pair in the hashmap
 
+        auto listIt = hashIt->second; //gives an iterator for the value in the hashmap at the iterator
+
+        PriceLevel *plList = listIt->Parent;
+        uint64_t &sharesInside = listIt->Shares;
+        uint64_t &volume = plList->TotalVolume;
+
+        //used later
+        uint64_t locate = listIt->StockLocate;
+
+        char side = listIt->BuySell;
+        uint32_t oldPrice = plList->Price;
+
+        volume -= sharesInside;
+
+        plList->orders.erase(listIt); //remove Order from the list
+
+        Orders.erase(hashIt);
+
+        if (volume == 0 && oldPrice != Price) {
+                if (side == 'S') {
+                        Asks.erase(oldPrice);
+                }else {
+                        Bids.erase(oldPrice);
+                }
+        }
+
+        PriceLevel &level = (side == 'B') ? Bids[Price] : Asks[Price];
+        //to the map
+        level.Price=Price;
+        level.TotalVolume += Shares;
+        level.orders.emplace_back(Shares ,newOrderID ,&level ,locate ,side);
+
+        //to the hashmap
+        auto it = std::prev(level.orders.end());
+        Orders[newOrderID] = it;
 
 
 
