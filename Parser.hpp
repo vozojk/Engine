@@ -1,7 +1,7 @@
 //
 // Created by vojte on 12/02/2026.
 //
-
+//TODO FIX CANCEL DELETE ORDER MISMATCH
 //apparently, if i put this in a header even though headers are for definitions
 //the compiler can inline the code into where its called basically creating one huge file
 //which increases performance since no other file has to be accessed
@@ -24,7 +24,7 @@ using namespace std;
 // 65536 is enough for all US stocks (max is usually ~12,000)
 namespace ITCHParser {
     std::vector<std::string> stock_directory(65536);
-    int counter = 0;
+    int counter = 13;
 
     // 1. Swap 16-bit (2 bytes) - used for Lengths and Message Types
     //the inline is gray but its to signal
@@ -53,9 +53,17 @@ namespace ITCHParser {
                 (uint64_t)x[5]);
     }
 
-    // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-    inline void parse(char* ptr, char* end, OrderBook* book) {
+    static inline void showStock(int i, OrderBook books[]) {
+        if (books[i].hasOrders()) {
+            std::cout << "\033[H\033[2J" << std::flush;
+            std::cout << "StockLocate " << i << " " << stock_directory[i] << " is active:" << std::endl;
+            books[i].printStats();
+        }
+    }
 
+    // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+    inline void parse(char* ptr, char* end, OrderBook books[]) {
+        int apple;
         char* start = ptr;
         //no check for size so far (file is 2gb)
 
@@ -105,7 +113,8 @@ namespace ITCHParser {
                     //convert stock to a string
                     std::string symbol(msg -> Stock, 8); //slow but will keep for now
 
-                    //std::cout << msg -> StockLocate << " stands for " << symbol << std::endl;
+                    std::cout << msg -> StockLocate << " stands for " << symbol << std::endl;
+                    if (symbol == "AAPL") apple = msg -> StockLocate;
                     stock_directory[msg -> StockLocate] = symbol;
 
                     break;
@@ -129,7 +138,7 @@ namespace ITCHParser {
                     //        << stock_directory[msg -> StockLocate] << " at the price of " << (msg -> Price/1000) << " -> " << msg -> Price%1000 << std::endl;
 
                     //add order to the book, disregard locate for now
-                    book->addOrder(shares, orderID, locate, side, price);
+                    books[locate].addOrder(shares, orderID, locate, side, price);
 
                     break;
                 }
@@ -153,7 +162,7 @@ namespace ITCHParser {
                     //std::cout << "Sent " << msg -> BuySell << " order for " << msg -> Shares << " shares of "
                     //        << stock_directory[msg -> StockLocate] << " at the price of " << (msg -> Price/1000) << " -> " << msg -> Price%1000 << std::endl;
 
-                    book->addOrder(shares, orderID, locate, side, price);
+                    books[locate].addOrder(shares, orderID, locate, side, price);
 
 
                     break;
@@ -184,7 +193,7 @@ namespace ITCHParser {
                     uint64_t timestamp = parseTimestamp(msg -> Timestamp);
                     msg -> MatchNumber = bswap64(msg -> MatchNumber); //unique
 
-                    book->executeOrder(orderID, shares);
+                    books[locate].executeOrder(orderID, shares);
 
                     //std::cout << "Executed order for " << msg -> ExecutedShares << " of " << stock_directory[msg -> StockLocate] << std::endl;
                     break;
@@ -208,7 +217,7 @@ namespace ITCHParser {
                     //std::cout << "Executed order for " << msg -> ExecutedShares << " of " << stock_directory[msg -> StockLocate]
                     //<< "at " << msg -> ExecutionPrice/1000 << " -> " << msg -> ExecutionPrice%1000 << std::endl;
 
-                    book->executeOrder(orderID, shares);
+                    books[locate].executeOrder(orderID, shares);
 
 
                     break;
@@ -220,15 +229,14 @@ namespace ITCHParser {
 
                     //reverse all integers, endianness
                     uint64_t orderID = bswap64(msg -> OrderReferenceNumber);
-
+                    uint16_t locate = bswap16(msg -> StockLocate);
                     //keep for now, bad to change directly
-                    msg -> StockLocate = bswap16(msg -> StockLocate);
                     msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
                     uint64_t timestamp = parseTimestamp(msg -> Timestamp);
 
                     //std::cout << "Canceled order for " << stock_directory[msg -> StockLocate] << std::endl;
 
-                    book->cancelOrder(orderID);
+                    books[locate].cancelOrder(orderID);
 
                     break;
                 }
@@ -249,7 +257,7 @@ namespace ITCHParser {
                     uint64_t timestamp = parseTimestamp(msg -> Timestamp);
 
 
-                    book->replaceOrder(originalOrderID, newOrderID,
+                    books[locate].replaceOrder(originalOrderID, newOrderID,
                         shares, price);
                     break;
 
@@ -264,12 +272,13 @@ namespace ITCHParser {
                     break;
                 }
             }
-            //if (counter % 1000000 == 0) {
-            //    book->printStats();
-            //    std::cout << "-----------------------" << std::endl;
-            //    std::cout << "Total Orders in Processed: " << counter << std::endl;
-            //    std::cout << "-----------------------" << std::endl;
-            //}
+            // -----------------------------------------------------------
+            // prints vals for each at locate i every 10k messages
+            if (counter % 10000 == 0) {
+                showStock(13, books);
+            // -------------------------------------------------------------
+
+            }
             ptr += length;
         }
         // --- STOP TIMER ---

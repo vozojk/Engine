@@ -37,7 +37,11 @@ public:
                         uint32_t Shares,
                         uint32_t Price);
 
+    //for logging purposes
     void printStats();
+
+    //helper to access private field property
+    bool hasOrders();
     //~OrderBook();
 
 };

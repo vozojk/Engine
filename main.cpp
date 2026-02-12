@@ -13,6 +13,8 @@ using namespace std::chrono;
 using namespace std;
 
 int main() {
+    // Pre-allocate a book for every possible StockLocate ID
+    std::vector<OrderBook> AllBooks(65536);
     std::vector<char> v(2000000000); //20 mil bytes
     //move the binary file to RAM (drive -> kernel cache(in RAM))
     std::ifstream file("/home/vozojk/THE THING/market.bin", std::ios::binary);
@@ -27,6 +29,6 @@ int main() {
 
     file.read(v.data(), v.size()); //read file into one big array, lowers syscalls which are slow
 
-    ITCHParser::parse(&v[0], &v[0]+v.size(), &GlobalBook);
+    ITCHParser::parse(&v[0], &v[0]+v.size(), AllBooks.data());
 
 }

@@ -166,3 +166,7 @@ void OrderBook::printStats() {
         std::cout << "Total Orders in Memory: " << Orders.size() << std::endl;
         std::cout << "-----------------------" << std::endl;
 }
+//helper for private field
+bool OrderBook::hasOrders() {
+        return !Orders.empty();
+}
