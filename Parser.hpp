@@ -13,7 +13,6 @@
 #include <fstream>
 #include "ITCH_Messages.hpp"
 #include "Order_Book.hpp"
-#include "Types.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -216,8 +215,8 @@ namespace ITCHParser {
                 }
 
                 case ('D'): {
-                    OrderCancel* msg;
-                    msg = reinterpret_cast<OrderCancel*>(ptr);
+                    OrderDelete* msg;
+                    msg = reinterpret_cast<OrderDelete*>(ptr);
 
                     //reverse all integers, endianness
                     uint64_t orderID = bswap64(msg -> OrderReferenceNumber);
@@ -265,6 +264,12 @@ namespace ITCHParser {
                     break;
                 }
             }
+            //if (counter % 1000000 == 0) {
+            //    book->printStats();
+            //    std::cout << "-----------------------" << std::endl;
+            //    std::cout << "Total Orders in Processed: " << counter << std::endl;
+            //    std::cout << "-----------------------" << std::endl;
+            //}
             ptr += length;
         }
         // --- STOP TIMER ---
@@ -288,13 +293,13 @@ namespace ITCHParser {
         cout << "------------------------------------------------" << endl;
 
         // 1. Generate a runtime index based on the counter (compiler can't predict this)
-        size_t random_index = counter % v.size();
+        //size_t random_index = counter % (end - ptr);
 
         // 2. Read from the buffer
-        volatile char check = v[random_index];
+        //volatile char check = v[random_index];
 
         // 3. Print it (Forces the read to be real)
-        std::cout << "Sanity Check (Random Byte): " << (int)check << std::endl;
+        //std::cout << "Sanity Check (Random Byte): " << (int)check << std::endl;
         //this is genuinely crazy what everything does the computer do and i dont have the slightest clue
         // it was at 5ns and i added this print and now its 13ns, just because the compiler is so smart it just skips
         //everything it doesnt need.

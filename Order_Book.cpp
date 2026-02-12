@@ -3,13 +3,12 @@
 //
 
 #include "Order_Book.hpp"
+
+#include <iostream>
+
 #include "Types.hpp"
 
-std::map<uint32_t, PriceLevel, std::greater<uint32_t>> Bids;
-std::map<uint32_t, PriceLevel> Asks;
-std::unordered_map<uint64_t, std::list<Order>::iterator> Orders;
-
-void addOrder(uint64_t Shares, uint64_t OrderID,
+void OrderBook::addOrder(uint32_t Shares, uint64_t OrderID,
         uint16_t StockLocate, char BuySell, uint32_t Price) {
 
         PriceLevel &level = (BuySell == 'B') ? Bids[Price] : Asks[Price];
@@ -24,7 +23,7 @@ void addOrder(uint64_t Shares, uint64_t OrderID,
 
 }
 //cancels an order and updates the book at a certain price level accordingly, updates the rb tree(volume, delete from list) and hashmap (delete order)
-void cancelOrder(uint64_t OrderID) {
+void OrderBook::cancelOrder(uint64_t OrderID) {
 
 
         auto hashIt = Orders.find(OrderID);
@@ -62,7 +61,7 @@ void cancelOrder(uint64_t OrderID) {
 //this is basically the same as cancel order
 //apparently the CPU keeps history of function calls and what happened after and makes predictions based on that
 //by separating them i make it more deterministic, the cpu will be right more often
-void executeOrder(uint64_t OrderID, uint64_t executedShares) {
+void OrderBook::executeOrder(uint64_t OrderID, uint32_t executedShares) {
         auto hashIt = Orders.find(OrderID); //gives an iterator for the key value pair in the hashmap
 
         if (hashIt == Orders.end()) return;
@@ -97,7 +96,7 @@ void executeOrder(uint64_t OrderID, uint64_t executedShares) {
         }
 }
 
-void replaceOrder(const uint64_t oldOrderID,
+void OrderBook::replaceOrder(const uint64_t oldOrderID,
                         const uint64_t newOrderID,
                         const uint32_t Shares,
                         const uint32_t Price) {
@@ -141,6 +140,29 @@ void replaceOrder(const uint64_t oldOrderID,
         auto it = std::prev(level.orders.end());
         Orders[newOrderID] = it;
 
+}
 
+void OrderBook::printStats() {
+        std::cout << "--- MARKET SNAPSHOT ---" << std::endl;
 
+        if (Bids.empty()) {
+                std::cout << "Bids: EMPTY" << std::endl;
+        } else {
+                // Bids are sorted High-to-Low (std::greater), so begin() is the Highest Price
+                auto bestBid = Bids.begin();
+                std::cout << "Best Bid: " << bestBid->second.TotalVolume
+                          << " shrs @ $" << (bestBid->first / 10000.0) << std::endl;
+        }
+
+        if (Asks.empty()) {
+                std::cout << "Asks: EMPTY" << std::endl;
+        } else {
+                // Asks are sorted Low-to-High (default), so begin() is the Lowest Price
+                auto bestAsk = Asks.begin();
+                std::cout << "Best Ask: " << bestAsk->second.TotalVolume
+                          << " shrs @ $" << (bestAsk->first / 10000.0) << std::endl;
+        }
+
+        std::cout << "Total Orders in Memory: " << Orders.size() << std::endl;
+        std::cout << "-----------------------" << std::endl;
 }

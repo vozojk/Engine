@@ -12,9 +12,9 @@
 
 
 class OrderBook {
-    std::map<uint32_t, PriceLevel*, std::greater<uint32_t>> Bids;
-    std::map<uint32_t, PriceLevel*> Asks;
-    std::unordered_map<uint64_t, std::list<Order*>::iterator> Orders;
+    std::map<uint32_t, PriceLevel, std::greater<uint32_t>> Bids;
+    std::map<uint32_t, PriceLevel> Asks;
+    std::unordered_map<uint64_t, std::list<Order>::iterator> Orders;
 
 public:
     void addOrder(uint32_t Shares,
@@ -37,7 +37,8 @@ public:
                         uint32_t Shares,
                         uint32_t Price);
 
-    ~OrderBook();
+    void printStats();
+    //~OrderBook();
 
 };
 
