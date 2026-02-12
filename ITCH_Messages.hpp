@@ -7,7 +7,11 @@
 
 #include <cstdint>
 
-#pragma pack(push,1)
+#pragma once
+#pragma pack(push, 1)
+
+
+
 
 struct MessageHeader {
     uint16_t Length; //message length
@@ -135,5 +139,7 @@ struct OrderReplace { //basically editing the order
     uint32_t Shares; //how many shares in the new order
     uint32_t Price; //new price*10^4
 };
+
 #pragma pack(pop)
+
 #endif //THE_THING_ITCH_MESSAGES_HPP

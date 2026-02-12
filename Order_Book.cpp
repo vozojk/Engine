@@ -23,7 +23,7 @@ void OrderBook::addOrder(uint32_t Shares, uint64_t OrderID,
 
 }
 //cancels an order and updates the book at a certain price level accordingly, updates the rb tree(volume, delete from list) and hashmap (delete order)
-void OrderBook::cancelOrder(uint64_t OrderID) {
+void OrderBook::deleteOrder(uint64_t OrderID) {
 
 
         auto hashIt = Orders.find(OrderID);
@@ -61,7 +61,7 @@ void OrderBook::cancelOrder(uint64_t OrderID) {
 //this is basically the same as cancel order
 //apparently the CPU keeps history of function calls and what happened after and makes predictions based on that
 //by separating them i make it more deterministic, the cpu will be right more often
-void OrderBook::executeOrder(uint64_t OrderID, uint32_t executedShares) {
+void OrderBook::reduceOrderSize(uint64_t OrderID, uint32_t executedShares) {
         auto hashIt = Orders.find(OrderID); //gives an iterator for the key value pair in the hashmap
 
         if (hashIt == Orders.end()) return;
@@ -104,6 +104,10 @@ void OrderBook::replaceOrder(const uint64_t oldOrderID,
 
         auto hashIt = Orders.find(oldOrderID); //gives an iterator for the key value pair in the hashmap
 
+        // --- ADD THIS CHECK ---
+        if (hashIt == Orders.end()) {
+                return; // We missed the original order, so we can't replace it.
+        }
         auto listIt = hashIt->second; //gives an iterator for the value in the hashmap at the iterator
 
         PriceLevel *plList = listIt->Parent;
@@ -166,6 +170,15 @@ void OrderBook::printStats() {
         std::cout << "Total Orders in Memory: " << Orders.size() << std::endl;
         std::cout << "-----------------------" << std::endl;
 }
+
+void OrderBook::cancelOrder(uint64_t OrderID, uint32_t Shares) {
+        OrderBook::reduceOrderSize(OrderID, Shares);
+}
+
+void OrderBook::executeOrder(uint64_t OrderID, uint32_t Shares) {
+        OrderBook::reduceOrderSize(OrderID, Shares);
+}
+
 //helper for private field
 bool OrderBook::hasOrders() {
         return !Orders.empty();

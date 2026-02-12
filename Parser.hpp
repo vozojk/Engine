@@ -1,7 +1,6 @@
 //
 // Created by vojte on 12/02/2026.
 //
-//TODO FIX CANCEL DELETE ORDER MISMATCH
 //apparently, if i put this in a header even though headers are for definitions
 //the compiler can inline the code into where its called basically creating one huge file
 //which increases performance since no other file has to be accessed
@@ -11,8 +10,9 @@
 
 #include <iostream>
 #include <fstream>
-#include "ITCH_Messages.hpp"
+
 #include "Order_Book.hpp"
+#include "ITCH_Messages.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -58,6 +58,9 @@ namespace ITCHParser {
             std::cout << "\033[H\033[2J" << std::flush;
             std::cout << "StockLocate " << i << " " << stock_directory[i] << " is active:" << std::endl;
             books[i].printStats();
+            std::cout << "StockLocate " << 547 << " " << stock_directory[547] << " is active:" << std::endl;
+            books[547].printStats();
+
         }
     }
 
@@ -69,7 +72,7 @@ namespace ITCHParser {
 
         std::cout << "ENGINE STARTING!" << std::endl;
         auto start_time = high_resolution_clock::now(); //start clock
-        while (ptr < end) { //switch to while (file) for full file, checks for end of file
+        while (counter < 100000000) { //switch to while (file) for full file, checks for end of file
             counter++;
             MessageHeader* headerPtr = reinterpret_cast<MessageHeader*>(ptr);
             ptr += 2;
@@ -89,12 +92,12 @@ namespace ITCHParser {
                     //endianness swaps
                     event -> TrackingNumber = bswap16(event -> TrackingNumber);
                     uint64_t timestamp = parseTimestamp(event -> Timestamp);
-
+                    char code = event -> EventCode;
                     //print for debug... no need to swap StockLocate since its 0
                     //std::cout << "The type is " << event -> MessageType << ", the locate is " << event -> StockLocate
                     //<< ", the tracking number is " << event -> TrackingNumber << ", the time was "
                     //<< timestamp << ", the event code is " << event -> EventCode << "." << std::endl;
-
+                    if (code == 'Q') std::cout << ">>> MARKET OPEN (START TRADING) <<<" << std::endl;
                     break;
                 }
                 case ('R'): {
@@ -186,7 +189,7 @@ namespace ITCHParser {
                     //reverse all integers, endianness
                     const uint64_t orderID = bswap64(msg->OrderReferenceNumber);
                     const uint16_t locate  = bswap16(msg->StockLocate);
-                    const uint64_t shares = bswap64(msg -> ExecutedShares);
+                    const uint32_t shares = bswap32(msg -> ExecutedShares);
 
                     //keep for now, wrong! shouldnt edit directly
                     msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
@@ -206,7 +209,7 @@ namespace ITCHParser {
                     //reverse all integers, endianness
                     const uint64_t orderID = bswap64(msg->OrderReferenceNumber);
                     const uint16_t locate  = bswap16(msg->StockLocate);
-                    const uint64_t shares = bswap64(msg -> ExecutedShares);
+                    const uint32_t shares = bswap32(msg -> ExecutedShares);
 
                     //keep for now, wrong! shouldnt edit directly
                     msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
@@ -236,7 +239,23 @@ namespace ITCHParser {
 
                     //std::cout << "Canceled order for " << stock_directory[msg -> StockLocate] << std::endl;
 
-                    books[locate].cancelOrder(orderID);
+                    books[locate].deleteOrder(orderID);
+
+                    break;
+                }
+
+                case ('X'): {
+                    OrderCancel* msg;
+                    msg = reinterpret_cast<OrderCancel*>(ptr);
+                    //reverse all integers, endianness
+                    uint64_t orderID = bswap64(msg -> OrderReferenceNumber);
+                    uint16_t locate = bswap16(msg -> StockLocate);
+                    //keep for now, bad to change directly
+                    msg -> TrackingNumber = bswap16(msg -> TrackingNumber);
+                    uint64_t timestamp = parseTimestamp(msg -> Timestamp);
+                    uint32_t shares = bswap32(msg -> CanceledShares);
+
+                    books[locate].cancelOrder(orderID, shares);
 
                     break;
                 }
@@ -274,7 +293,7 @@ namespace ITCHParser {
             }
             // -----------------------------------------------------------
             // prints vals for each at locate i every 10k messages
-            if (counter % 10000 == 0) {
+            if (counter % 1000000 == 0) {
                 showStock(13, books);
             // -------------------------------------------------------------
 
