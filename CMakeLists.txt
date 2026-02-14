@@ -29,4 +29,6 @@ add_executable(THE_THING main.cpp
         Order_Book.cpp
         Order_Book.hpp
         Types.hpp
-        Parser.hpp)
+        Parser.hpp
+        OUCH_Parser.hpp
+        OUCH_Messages.hpp)

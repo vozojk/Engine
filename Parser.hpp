@@ -20,9 +20,10 @@
 using namespace std::chrono;
 using namespace std;
 
-// A Lookup Table: Index = Locate ID, Value = Stock Symbol
-// 65536 is enough for all US stocks (max is usually ~12,000)
+
 namespace ITCHParser {
+    // A Lookup Table: Index = Locate ID, Value = Stock Symbol
+    // 65536 is enough for all US stocks (max is usually ~12,000)
     std::vector<std::string> stock_directory(65536);
     int counter = 13;
 
