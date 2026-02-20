@@ -5,14 +5,12 @@
 
 The intial architecture at this point spans a few major architectural decisions. I will describe them here as a baseline for this project.
 ## Table of Contents
-1. [ITCH Message struct definitions](#itch-message-struct-definitions)
+1. [ITCH/OUCH Message struct definitions](#itch/ouch-message-struct-definitions)
 2. [ITCH Parsing logic](#itch-parsing-logic)
 3. [First benchmarking logic and measurements](#first-benchmark)
 4. [Data structure choice and creation (The Order Book array)](#data-structure-choice-and-creation-the-order-book-array)
-5. [OUCH Message struct definitions](#ouch-message-struct-definitions)
-6. [OUCH Message parsing logic](#ouch-message-parsing-logic)
 
-## ITCH Message struct definitions
+## ITCH/OUCH Message struct definitions
 
 The engine implements a zero-copy ingestion pipeline for the NASDAQ ITCH 5.0 protocol. The data model is designed to minimize serialization overhead and maximize cache locality.
 
@@ -104,7 +102,3 @@ Achieve $O(1)$ order manipulation and $O(\log N)$ price discovery using a hybrid
 **Current Technical Debt:**
 * **The Heap:** `std::map` and `std::list` are node-based and hit the heap for every new order.
 * **Next Step:** Moving toward **Memory Pools** to pre-allocate order nodes and eliminate `new/delete` jitter on the hot path.
-## OUCH Message struct definitions
-## OUCH Message parsing logic
-
-
