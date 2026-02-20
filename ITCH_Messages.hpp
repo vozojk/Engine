@@ -8,7 +8,9 @@
 #include <cstdint>
 
 #pragma once
-#pragma pack(push, 1)
+#pragma pack(push, 1) //this should be replaced with __attribute__((packed))-sticky to just the method or even
+                        //__attribute__((packed, aligned(x)) which ensures the start address is always a multiple of x
+                        //we use alignas(x) for objects like an array
 
 
 

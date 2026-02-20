@@ -73,7 +73,7 @@ namespace ITCHParser {
 
         std::cout << "ENGINE STARTING!" << std::endl;
         auto start_time = high_resolution_clock::now(); //start clock
-        while (counter < 100000000) { //switch to while (file) for full file, checks for end of file
+        while (counter < 50000000) { //switch to while (file) for full file, checks for end of file
             counter++;
             MessageHeader* headerPtr = reinterpret_cast<MessageHeader*>(ptr);
             ptr += 2;
@@ -98,7 +98,7 @@ namespace ITCHParser {
                     //std::cout << "The type is " << event -> MessageType << ", the locate is " << event -> StockLocate
                     //<< ", the tracking number is " << event -> TrackingNumber << ", the time was "
                     //<< timestamp << ", the event code is " << event -> EventCode << "." << std::endl;
-                    if (code == 'Q') std::cout << ">>> MARKET OPEN (START TRADING) <<<" << std::endl;
+                    //if (code == 'Q') std::cout << ">>> MARKET OPEN (START TRADING) <<<" << std::endl;
                     break;
                 }
                 case ('R'): {
@@ -118,7 +118,7 @@ namespace ITCHParser {
                     std::string symbol(msg -> Stock, 8); //slow but will keep for now
 
                     std::cout << msg -> StockLocate << " stands for " << symbol << std::endl;
-                    if (symbol == "AAPL") apple = msg -> StockLocate;
+                    //if (symbol == "AAPL") apple = msg -> StockLocate;
                     stock_directory[msg -> StockLocate] = symbol;
 
                     break;
@@ -294,11 +294,11 @@ namespace ITCHParser {
             }
             // -----------------------------------------------------------
             // prints vals for each at locate i every 10k messages
-            if (counter % 1000000 == 0) {
-                showStock(13, books);
+            //if (counter % 1000000 == 0) {
+            //    showStock(13, books);
             // -------------------------------------------------------------
 
-            }
+            //}
             ptr += length;
         }
         // --- STOP TIMER ---
@@ -313,7 +313,7 @@ namespace ITCHParser {
         cout << "------------------------------------------------" << endl;
         cout << "Processed " << counter << " messages." << endl;
         cout << "Total Time: " << duration_us.count() << " microseconds ("
-             << duration_us.count() / 10000.0 << " ms)" << endl;
+             << duration_us.count() / 1000.0 << " ms)" << endl;
 
         // The "HFT" Metric: Time per message
         double ns_per_msg = (long double)duration_ns.count() / counter;
