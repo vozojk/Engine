@@ -20,7 +20,9 @@ using namespace std::chrono;
 using namespace std;
 
 namespace OUCH {
-    inline OrderState* tracker = new OrderState[1000000];
+    inline MyOrder* tracker = new MyOrder[1000000]; //preallocated, my orders are small, instant access and mutation by id
+    inline unordered_map<uint64_t, ExecutionRecord> fillTracker; //key is the match number
+    inline uint32_t userRefNum = 1; //should be persistent, needs to recover if app restarted
 
     // 1. Swap 16-bit (2 bytes) - used for Lengths and Message Types
     //the inline is gray but its to signal
@@ -44,7 +46,7 @@ namespace OUCH {
 
 
         // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-        inline void parse(char* ptr, char* end, OrderBook books[]) { //need to handle partial messages
+        inline void parse(char* ptr, char* end) { //need to handle partial messages
 
             while (ptr < end) {
                 char Type = *reinterpret_cast<char*>(ptr);
@@ -53,20 +55,30 @@ namespace OUCH {
                     case 'S': {
                         SystemEvent* msg = reinterpret_cast<SystemEvent*>(ptr);
                         ptr+=sizeof(SystemEvent);
-
                         break;
                     }
 
                     case 'A': {
                         Accepted* msg = reinterpret_cast<Accepted*>(ptr);
                         ptr+=sizeof(Accepted);
+                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
 
+                        order->active = OrderState::LIVE;
                         break;
                     }
 
                     case 'C': {
                         Cancelled* msg = reinterpret_cast<Cancelled*>(ptr);
                         ptr+=sizeof(Cancelled);
+
+                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
+
+                        uint32_t open = order->openQuantity;
+
+                        open -= bswap32(msg->Quantity);
+
+                        if (open == 0) order->active = OrderState::CANCELED;
+                        order->openQuantity = open;
 
                         break;
                     }
@@ -75,12 +87,39 @@ namespace OUCH {
                         Executed* msg = reinterpret_cast<Executed*>(ptr);
                         ptr+=sizeof(Executed);
 
+                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
+
+                        uint32_t open = order->openQuantity;
+                        uint32_t filled = bswap32(msg->Quantity);
+                        open -= filled;
+                        order->openQuantity = open;
+                        order->filledQuantity += filled;
+
+                        //update fill tracker
+                        fillTracker[bswap64(msg->MatchNumber)].filled_qty += filled;
+
+                        if (open == 0) order->active = OrderState::FILLED;
+                        else order->active = OrderState::PARTIALLY_FILLED;
+
                         break;
                     }
 
                     case 'B': {
                         Broken* msg = reinterpret_cast<Broken*>(ptr);
                         ptr+=sizeof(Broken);
+
+                        uint32_t filled = fillTracker[bswap64(msg->MatchNumber)].filled_qty;
+
+                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
+
+                        order->filledQuantity -= filled;
+                        order->totalQuantity -= filled;
+                        //need to change the amount of shares owned and get money back
+                        //it does not void the whole trade even though there is no quantity
+                        //i need to figure out how much from my own book
+                        //i have created the fillTracker for this, it stores order
+                        //with match numbers separately so the normal book doesnt
+                        //get bloated
 
                         break;
                     }
@@ -89,12 +128,16 @@ namespace OUCH {
                         Rejected* msg = reinterpret_cast<Rejected*>(ptr);
                         ptr+=sizeof(Rejected);
 
+                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
+
+                        order->active = OrderState::REJECTED;
+                        //should change monies later if i have them
                         break;
                     }
 
                     default: {
-                        cout << "Message not recognized! BAD!!!" << std::endl;
-                        cout << "Cannot move ptr! BAD!!!";
+                        cout << "Message not recognized! Aborting buffer parse." << std::endl;
+                        return; // Escape the while loop entirely
                     }
 
                 }
@@ -104,7 +147,6 @@ namespace OUCH {
     }
 
     namespace Outbound {
-        inline uint32_t userRefNum = 1; //should be persistent, needs to recover if app restarted
 
 
         inline EnterOrder enterOrder(char Side, char Symbol[8], uint64_t Price, uint32_t Quantity) {
@@ -112,7 +154,7 @@ namespace OUCH {
 
             order.Type = 'O';
             order.UserRefNum = bswap32(userRefNum); //could use htobe64 but this is more direct (htobe checks for cpu endianness)
-            userRefnum++;
+
             order.Side = Side;
             order.Quantity = bswap32(Quantity);
             memset(order.Symbol, ' ', 8);
@@ -140,12 +182,20 @@ namespace OUCH {
                     tempNum /= 10;
                 }
             }
-            OrderState* state = &tracker[userRefNum-1];
-            state->Price = Price;
-            state->TotalQuantity = Quantity;
-            state->filledQuantity = 0;
-            memcpy(state->Symbol, Symbol, 8);
-            state->active = true;
+            //creates the struct for keeping track of created order and adds it to the book
+            MyOrder* myOrder = &tracker[userRefNum-1];
+            myOrder->price = Price;
+            myOrder->totalQuantity = Quantity;
+            myOrder->openQuantity = Quantity;
+            myOrder->filledQuantity = 0;
+            memcpy(myOrder->symbol, Symbol, 8);
+            myOrder->active = OrderState::PENDING_NEW;
+
+            userRefNum++;
+
+            return order;
+
+
 
         }
     }
