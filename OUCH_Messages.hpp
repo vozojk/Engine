@@ -12,6 +12,8 @@
 
 //S,A,C,E,B,J
 
+enum class OrderState : uint8_t;
+
 struct SystemEvent { //type = 'S'
     char Type;
     uint64_t Timestamp;
@@ -45,7 +47,7 @@ struct Cancelled { //full or partial cancel of the order - type = 'C'
     char Reason;
 };
 
-struct Executed { //type = 'E'
+struct Executed { //type = 'E' Marks a partial or total filling of order
     char Type;
     uint64_t Timestamp;
     uint32_t UserRefNum;
@@ -76,33 +78,55 @@ struct Rejected { // type = 'J'
 };
 
 struct EnterOrder { // type = 'O'
-    char Type;
-    uint32_t UserRefNum; //starts at 1, global order counter
-    char Side;
-    uint32_t Quantity;
-    char Symbol[8];
+    char ClOrdID[14]; //order ID assigned by sender of the order (not NASDAQ)
     uint64_t Price;
+    char Symbol[8];
+    uint32_t UserRefNum; //starts at 1, global order counter
+    uint32_t Quantity;
+    char Type;
+    char Side;
     char TimeInForce;
     char Display; //Y=visible, N=hidden, A=attributable, Z=conformant
     char Capacity;
     char InterMarketSweepEligibility; //Y/N
     char CrossType;
-    char ClOrdID[14]; //order ID assigned by sender of the order (not NASDAQ)
+
     //will not send any optionals
 };
 
-struct OrderState {//price, total, filled, symbol, active
+struct MyOrder {//price, total, filled, symbol, active
 
-    uint64_t Price;
-    uint32_t TotalQuantity;
+    uint64_t price;
+    uint32_t totalQuantity;
     uint32_t filledQuantity;
-    char Symbol[8];
-    bool active;
+    uint32_t openQuantity;
+    char symbol[8];
+    OrderState active;
+};
+
+enum class OrderState : uint8_t {
+    UNALLOCATED = 0,
+    PENDING_NEW = 1,
+    LIVE = 2,
+    PARTIALLY_FILLED = 3,
+    FILLED = 4,
+    CANCELED = 5,
+    REJECTED = 6
+};
+
+struct ExecutionRecord {
+    uint64_t MatchNumber;
+    uint32_t filled_qty;
+    uint32_t price;
 };
 
 //need to be able to fill orders, mark
 //need to update parse to actually do something
 //cases E,J,C,B
+//
+//Preallocate order space for the whole day. Keep a daily id of orders.
+//goal is to manage an order book of my orders through enter order (so far) and the ouch responses i will simulate later.
+
 
 
 
