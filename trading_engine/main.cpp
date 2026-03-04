@@ -39,7 +39,9 @@ int main() {
 
     uint8_t buffer[2048]; //buffer for the packet, 2048 just to be sure
     //each should be max like 50 though
+    int count = 1;
 
+    auto batch_start_time = std::chrono::high_resolution_clock::now(); //start clock
     while (true) {//loop for new packet
 
 
@@ -50,9 +52,29 @@ int main() {
             perror("Receive failed");
             break;
         }
+        count++;
 
-        char msg_type = (char)buffer[0];
-        //std::cout << "Recieved packet! Type: " << msg_type << " (" << received << " bytes)" << std::endl;
+        if (count % 100000 == 0) {
+            auto batch_end_time = high_resolution_clock::now();
+
+            // Calculate how long this batch of 100k took
+            auto duration_us = duration_cast<microseconds>(batch_end_time - batch_start_time).count();
+
+            // Throughput: (Messages / Microseconds) * 1,000,000 = Messages per Second
+            double msgs_per_sec = (100000.0 / duration_us) * 1000000.0;
+
+            // Latency: Average nanoseconds per message
+            auto duration_ns = duration_cast<nanoseconds>(batch_end_time - batch_start_time).count();
+            double ns_per_msg = (double)duration_ns / 100000.0;
+
+            std::cout << "[TELEMETRY] Processed " << count << " msgs | "
+                      << "Throughput: " << msgs_per_sec << " msgs/sec | "
+                      << "Avg Latency: " << ns_per_msg << " ns/msg" << std::endl;
+
+            // Reset the clock for the next batch
+            batch_start_time = high_resolution_clock::now();
+        }
+
         ITCHParser::parse(reinterpret_cast<char*>(buffer), (size_t) received, AllBooks.data());
 
 
