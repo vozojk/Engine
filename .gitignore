@@ -11,3 +11,4 @@
 *.iml
 cmake-build-debug/
 cmake-build-release/
+CMakePresets.json
