@@ -26,12 +26,16 @@ int main() {
 
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     //create a socket IPv4, UPD, default (0)
-
+    //disable checksum since it could help rid of loopback
+    int disable = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_NO_CHECK, &disable, sizeof(disable)) < 0) {
+        perror("setsockopt SO_NO_CHECK failed");
+    }
 
     sockaddr_in dest_addr{};
     dest_addr.sin_family = AF_INET;//IPv4 family
     dest_addr.sin_port = htons(12345); //big endian port
-    dest_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost ip address
+    dest_addr.sin_addr.s_addr = inet_addr("172.28.197.104"); //localhost ip address
 
     size_t offset = 0; //position in the file
     int counter = 1;
