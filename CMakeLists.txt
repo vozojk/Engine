@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.20)
-project(THE_THING)  # <--- Name updated
+project(HFT_System)
 
+# Default to Release if not specified
 if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
@@ -8,12 +9,13 @@ endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
-# The Go Fast Flags
+# The Go Fast Flags (Inherited by everything)
 if(CMAKE_BUILD_TYPE STREQUAL "Release")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -DNDEBUG")
 else()
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g -O0 -Wall -Wextra")
 endif()
+
 # Check for LTO support (The "Glue" Optimization)
 include(CheckIPOSupported)
 check_ipo_supported(RESULT result OUTPUT output)
@@ -23,12 +25,6 @@ else()
     message(WARNING "LTO not supported: ${output}")
 endif()
 
-# We will add files here as we create them
-add_executable(THE_THING main.cpp
-        ITCH_Messages.hpp
-        Order_Book.cpp
-        Order_Book.hpp
-        Types.hpp
-        Parser.hpp
-        OUCH_Parser.hpp
-        OUCH_Messages.hpp)
+# Let the subdirectories inherit all this power
+add_subdirectory(trading_engine)
+add_subdirectory(mock_exchange)

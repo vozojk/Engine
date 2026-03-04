@@ -2,9 +2,9 @@
 #include <fstream>
 
 #include "Order_Book.hpp"
-#include "Types.hpp"
+#include "../common/Types.hpp"
 #include "Parser.hpp"
-#include "ITCH_Messages.hpp"
+#include "../common/ITCH_Messages.hpp"
 // Put this at the top of your main.cpp or protocol.h
 
 #include <cstdint>
@@ -18,7 +18,7 @@ int main() {
     std::vector<OrderBook> AllBooks(65536);
     std::vector<char> v(4000000000); //20 mil bytes
     //move the binary file to RAM (drive -> kernel cache(in RAM))
-    std::ifstream file("/home/vozojk/THE THING/market.bin", std::ios::binary);
+    std::ifstream file("/home/vozojk/THE THING/resources/market.bin", std::ios::binary);
 
     //check if it actually loaded
     if (!file) {

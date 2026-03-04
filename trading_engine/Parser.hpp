@@ -12,7 +12,7 @@
 #include <fstream>
 
 #include "Order_Book.hpp"
-#include "ITCH_Messages.hpp"
+#include "../common/ITCH_Messages.hpp"
 
 #include <cstdint>
 #include <vector>

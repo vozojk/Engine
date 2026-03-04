@@ -6,10 +6,10 @@
 
 #include <iostream>
 
-#include "Types.hpp"
+#include "../common/Types.hpp"
 
 void OrderBook::addOrder(uint32_t Shares, uint64_t OrderID,
-        uint16_t StockLocate, char BuySell, uint32_t Price) {
+                         uint16_t StockLocate, char BuySell, uint32_t Price) {
 
         PriceLevel &level = (BuySell == 'B') ? Bids[Price] : Asks[Price];
         //to the map
