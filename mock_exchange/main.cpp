@@ -144,7 +144,7 @@ void tcpResponder(int fd) {
                 back.InterMarketSweepEligibility = incoming->InterMarketSweepEligibility;
                 back.CrossType = incoming->CrossType;
 
-                back.OrderState = 'L';
+                back.State = 'L';
                 back.OrderID = htobe64(exchange_order_id);
                 exchange_order_id++;
 

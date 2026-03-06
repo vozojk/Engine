@@ -34,7 +34,7 @@ struct Accepted { // type = 'A'
     char Capacity;
     char InterMarketSweepEligibility; //Y/N
     char CrossType;
-    char OrderState; //L=live, D=dead
+    char State; //L=live, D=dead
     char ClOrdID[14]; //order ID assigned by sender of the order (not NASDAQ)
     //will not send any optionals
 };
