@@ -10,13 +10,24 @@
 #include <fcntl.h>        // File control (open)
 #include <unistd.h>       // POSIX API (close/sleep)
 #include <cstring>        // memory manipulation
-#include <cstdint>        // standard integer types
 #include <iostream>       // console logging
 #include <thread>         // multithreading
 #include <netinet/tcp.h>
+#include <x86intrin.h>
 
 #include "OUCH_Messages.hpp"
 using namespace std;
+void busy_loop(uint64_t nanoseconds, double ghz) {
+    uint64_t cycles_to_wait = static_cast<uint64_t>(nanoseconds * ghz);
+    uint64_t start = __rdtsc();
+
+    // Spin the CPU until the cycle count is reached
+    while (__rdtsc() - start < cycles_to_wait) {
+        _mm_pause();
+        // This hint tells the CPU it's in a spin-loop, saving power
+        // and improving performance for the next instruction.
+    }
+}
 void logTime(auto start_time, auto end_time, int counter) {
 
     auto duration_us = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
@@ -35,7 +46,7 @@ void logTime(auto start_time, auto end_time, int counter) {
     cout << "------------------------------------------------" << endl;
 }
 
-void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_in dest, int sleep_us) {
+void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_in dest, int sleep_ns) {
     sleep(10);
     int fd = open(filename, O_RDONLY); //get a file descriptor for the bin file
     if (fd < 0) {
@@ -86,10 +97,11 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         //but the point is epoll never even gets to the TCP packets because the UDP queue is completely overflowing effectivelly stuck in a
         //events[i].data.fd == udp_sock condition while(true) loop since that breaks only with an error or EAGAIN
         //todo read quota to limit the numbers of packets read so this doesnt happen
-        //todo a busy loop is also a great idea since it gives a much bigger waiting resolution
-        if (sleep_us > 0) {
-            usleep(sleep_us);
-        }
+        //if (sleep_us > 0) {
+        //    usleep(sleep_us);
+        //}
+        //even more crazy that this runs much much faster at 5000ns than usleep at 1us
+        busy_loop(sleep_ns, 2.1);
         if (counter % 1000000 == 0) {
             auto end_time = std::chrono::high_resolution_clock::now();
             logTime(start_time, end_time, 1000000);
@@ -180,19 +192,19 @@ void tcpResponder(int fd) {
 }
 //inialize sockets and start threads for tcp and udp
 int main(int argc, char* argv[]) {
-    int sleep_us = 5;
+    int sleep_ns = 5000;
     //set sleep duration
     if (argc > 1) {
         try {
-            sleep_us = std::stoi(argv[1]);
+            sleep_ns = std::stoi(argv[1]);
 
-            if (sleep_us < 0) sleep_us = 0;
+            if (sleep_ns < 0) sleep_ns = 0;
         } catch (const std::exception& e) {
             std:cerr << "INVALID ARGUMENT. Setting Default (5us)";
-            sleep_us = 5;
+            sleep_ns = 5;
         }
     }
-    cout << "Starting exchange with UDP cannon delay of " << sleep_us << " microseconds.\n";
+    cout << "Starting exchange with UDP cannon delay of " << sleep_ns << " nanoseconds.\n";
 
     //udp
     int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -208,7 +220,7 @@ int main(int argc, char* argv[]) {
     udp_addr.sin_port = htons(12345); //big endian port
     udp_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost ip address
 
-    std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr, sleep_us);
+    std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr, sleep_ns);
     cout << "UDP thread started\n";
 
     //tcp
