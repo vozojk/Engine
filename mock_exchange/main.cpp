@@ -16,7 +16,7 @@
 
 #include "OUCH_Messages.hpp"
 using namespace std;
-auto time(auto start_time, auto end_time, int counter) {
+void logTime(auto start_time, auto end_time, int counter) {
 
     auto duration_us = chrono::duration_cast<chrono::microseconds>(end_time - start_time);
     auto duration_ns = chrono::duration_cast<chrono::nanoseconds>(end_time - start_time);
@@ -83,7 +83,7 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         usleep(5);
         if (counter % 1000000 == 0) {
             auto end_time = std::chrono::high_resolution_clock::now();
-            time(start_time, end_time, 1000000);
+            logTime(start_time, end_time, 1000000);
             start_time = std::chrono::high_resolution_clock::now(); //start clock
         }
         if (counter % 2000000000 == 0) {//stop
@@ -179,7 +179,7 @@ int main() {
     sockaddr_in udp_addr{};
     udp_addr.sin_family = AF_INET;//IPv4 family
     udp_addr.sin_port = htons(12345); //big endian port
-    udp_addr.sin_addr.s_addr = inet_addr("172.28.197.104"); //localhost ip address
+    udp_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost ip address
 
     std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr);
     cout << "UDP thread started";
