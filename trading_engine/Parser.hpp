@@ -26,7 +26,7 @@ using namespace std;
 namespace ITCHParser {
     // A Lookup Table: Index = Locate ID, Value = Stock Symbol
     // 65536 is enough for all US stocks (max is usually ~12,000)
-    std::vector<std::string> stock_directory(65536);
+    inline std::vector<std::string> stock_directory(65536);
 
     // 1. Swap 16-bit (2 bytes) - used for Lengths and Message Types
     //the inline is gray but its to signal
