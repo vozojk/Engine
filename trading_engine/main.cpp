@@ -66,7 +66,7 @@ int main() {
     sockaddr_in tcp_addr{};
     tcp_addr.sin_family = AF_INET; //ipv4
     tcp_addr.sin_port = htons(9000);
-    inet_pton(AF_INET, "127.0.0.1", &tcp_addr.sin_addr); //stores address
+    inet_pton(AF_INET, "172.28.197.104", &tcp_addr.sin_addr); //stores address
     int state = connect(tcp_sock, (struct sockaddr*)&tcp_addr, sizeof(tcp_addr)); //establish connection
 
     //logs
@@ -90,7 +90,6 @@ int main() {
     uint8_t buffer[2048]; //buffer for the packet, 2048 just to be sure
     //each should be max like 50 though
     int count = 1;
-    int lastUDp = 0;
     auto batch_start_time = std::chrono::high_resolution_clock::now(); //start clock
     while (true) {//loop for new packet
         //sleeps until we get something
@@ -100,8 +99,34 @@ int main() {
             //UDP
             if (events[i].data.fd == udp_sock) {
                 //loop until empty since we use edge triggered
-                while (recvfrom(udp_sock, buffer, sizeof(buffer), 0, nullptr, nullptr)) {
-                    ITCHParser::parse(reinterpret_cast<char*>(buffer), AllBooks.data());
+                int size = recvfrom(udp_sock, buffer, sizeof(buffer), 0, nullptr, nullptr);
+                if (size > 0) {
+
+                    size_t offset = 0;
+                    int messages_in_bundle = 0;
+
+                    while (offset < (size_t)size) {
+
+                        uint16_t len;
+                        std::memcpy(&len, buffer+offset,2);
+                        len = ntohs(len);
+
+                        offset+=2;//for len
+
+                        if (offset + len > (size_t)size) {
+                            std::cerr << "Corrupted packet: Incomplete message \n";
+                            break;
+                        }
+
+                        char* msg = (char*)buffer+offset;
+
+                        ITCHParser::parse(msg, &AllBooks[0]);
+
+                        offset += len;
+                        messages_in_bundle++;
+                    }
+
+                    //cout << "Divided packet into " << messages_in_bundle << "messages \n";
                 }
                 //TCP
             }else if (events[i].data.fd == tcp_sock) {
@@ -144,8 +169,4 @@ int main() {
     }
 
     close(udp_sock);
-
-
-
-
 }
