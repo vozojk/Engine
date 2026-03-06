@@ -59,9 +59,15 @@ namespace OUCH {
                     case 'A': {
                         Accepted* msg = reinterpret_cast<Accepted*>(ptr);
                         ptr+=sizeof(Accepted);
-                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
+                        MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1]; //todo NOT SWAPPED
 
                         order->active = OrderState::LIVE;
+                        msg->Price = bswap64(msg->Price);
+                        msg->Timestamp = bswap64(msg->Timestamp);
+                        msg->Quantity =  bswap32(msg->Quantity);
+                        cout << "ORDER ACCEPTED. \n" << "SYMBOL: " << msg->Symbol <<" \n TIMESTAMP: " << msg->Timestamp <<
+                            "\n QUANTITY: " << msg->Quantity <<
+                            "\n PRICE: " << msg->Price << "\n";
                         break;
                     }
 
