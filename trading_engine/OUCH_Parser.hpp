@@ -66,9 +66,11 @@ namespace OUCH {
                         const uint64_t timestamp = bswap64(msg->Timestamp);
                         const uint32_t quantity =  bswap32(msg->Quantity);
 
-                        cout << "ORDER ACCEPTED. \n" << "SYMBOL: " << msg->Symbol <<" \n TIMESTAMP: " << timestamp <<
+                        cout << " ----------------------------------- \nORDER ACCEPTED \n" <<
+                            "SYMBOL: " << msg->Symbol <<
+                            " \n TIMESTAMP: " << timestamp <<
                             "\n QUANTITY: " << quantity <<
-                            "\n PRICE: " << price << "\n";
+                            "\n PRICE: " << price/10000 << "." << price%10000 << "\n";
                         break;
                     }
 
