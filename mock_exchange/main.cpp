@@ -13,6 +13,7 @@
 #include <cstdint>        // standard integer types
 #include <iostream>       // console logging
 #include <thread>         // multithreading
+#include <netinet/tcp.h>
 
 #include "OUCH_Messages.hpp"
 using namespace std;
@@ -188,6 +189,7 @@ int main() {
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
     int opt = 1;
     setsockopt(tcp_sock, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt));
+    setsockopt(tcp_sock, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt));
 
     sockaddr_in tcp_addr{};
     tcp_addr.sin_family = AF_INET;
