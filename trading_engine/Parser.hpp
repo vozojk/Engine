@@ -17,6 +17,8 @@
 #include <cstdint>
 #include <vector>
 #include <chrono> // <--- THE HEADER
+
+#include "OUCH_Parser.hpp"
 using namespace std::chrono;
 using namespace std;
 
@@ -53,7 +55,7 @@ namespace ITCHParser {
                 (uint64_t)x[5]);
     }
 
-    static inline void showStock(int i, OrderBook books[]) {
+    static inline void showStock(int i, std::vector<OrderBook> &books) {
         if (books[i].hasOrders()) {
             std::cout << "\033[H\033[2J" << std::flush;
             std::cout << "StockLocate " << i << " " << stock_directory[i] << " is active:" << std::endl;
@@ -65,7 +67,7 @@ namespace ITCHParser {
     }
 
     // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-    inline void parse(char* ptr, OrderBook books[]) {
+    inline void parse(char* ptr, std::vector<OrderBook> &books) {
         //now the function runs for 1 packet only
             switch (ptr[0]) {
                 // switch for message type
@@ -119,7 +121,7 @@ namespace ITCHParser {
 
                     //add order to the book, disregard locate for now
                     books[locate].addOrder(shares, orderID, locate, side, price);
-
+                    cout << "ORDER \n";
                     break;
                 }
 
@@ -254,7 +256,7 @@ namespace ITCHParser {
 
 
                 default: {
-                    std::cout << "Unrecognized message type skipping..." << std::endl;
+                    //std::cout << "Unrecognized message type skipping..." << std::endl;
                     break;
                 }
             }
