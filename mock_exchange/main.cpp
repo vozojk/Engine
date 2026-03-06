@@ -81,7 +81,10 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         }
         current_offset += len; //advance pointer to the next message
         //cout << "sent" << len << "bytes";
-        usleep(sleep_us);
+        //need to use an if wrap since otherwise usleep gets called even with 0, it is a sched_yield() syscall which damages performance a lot for this usecase
+        if (sleep_us > 0) {
+            usleep(sleep_us);
+        }
         if (counter % 1000000 == 0) {
             auto end_time = std::chrono::high_resolution_clock::now();
             logTime(start_time, end_time, 1000000);
