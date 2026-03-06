@@ -137,7 +137,7 @@ int main() {
 
                             count++;
 
-                            ITCHParser::parse(msg, AllBooks);
+                            ITCHParser::parse(msg, AllBooks, tcp_sock);
 
                             offset += len;
                             messages_in_bundle++;

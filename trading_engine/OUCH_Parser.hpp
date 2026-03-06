@@ -153,7 +153,7 @@ namespace OUCH {
 
 
         inline EnterOrder enterOrder(char Side, char Symbol[8], uint64_t Price, uint32_t Quantity) {
-            EnterOrder order;
+            EnterOrder order{};
 
             order.Type = 'O';
             order.UserRefNum = bswap32(userRefNum); //could use htobe64 but this is more direct (htobe checks for cpu endianness)

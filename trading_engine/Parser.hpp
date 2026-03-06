@@ -65,7 +65,7 @@ namespace ITCHParser {
     }
 
     // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-    inline void parse(char* ptr, std::vector<OrderBook> &books) {
+    inline void parse(char* ptr, std::vector<OrderBook> &books, int sock) {
         //now the function runs for 1 packet only
             switch (ptr[0]) {
                 // switch for message type
@@ -119,6 +119,12 @@ namespace ITCHParser {
 
                     //add order to the book, disregard locate for now
                     books[locate].addOrder(shares, orderID, locate, side, price);
+                    const char symbol[8] = "APPL   ";
+                    if (stock_directory[locate].starts_with("AAPL")) {
+                        EnterOrder respond = OUCH::Outbound::enterOrder('B', "APPL    ", (price+1)/1000, shares);
+                        send(sock, &respond, sizeof(respond), 0);
+
+                    }
 
                     break;
                 }
