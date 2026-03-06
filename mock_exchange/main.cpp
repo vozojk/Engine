@@ -122,42 +122,48 @@ void tcpResponder(int fd) {
     while (true) {
         ssize_t size = recv(sock, buffer, sizeof(buffer), 0);
         if (size > 0) {
-            //check for enter order
-            if (buffer[0] == 'O') {
+            int processed = 0;
+            //loop to respond to all the messages in case they got packaged up
+            while (processed + sizeof(EnterOrder) <= size) {
+                //check for enter order
+                if (buffer[processed] == 'O') {
 
-                EnterOrder* incoming = reinterpret_cast<EnterOrder *>(buffer);
+                    EnterOrder* incoming = reinterpret_cast<EnterOrder *>(buffer+processed);
 
-                Accepted back;
-                back.Type = 'A';
+                    Accepted back;
+                    back.Type = 'A';
 
-                auto now = std::chrono::high_resolution_clock::now().time_since_epoch();
-                back.Timestamp = htobe64(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
+                    auto now = std::chrono::high_resolution_clock::now().time_since_epoch();
+                    back.Timestamp = htobe64(std::chrono::duration_cast<std::chrono::nanoseconds>(now).count());
 
-                memcpy(back.ClOrdID, incoming->ClOrdID, 14);
-                memcpy(back.Symbol, incoming->Symbol, 8);
-                back.UserRefNum = incoming->UserRefNum;
-                back.Price = incoming->Price;
-                back.Quantity = incoming->Quantity;
-                back.Side = incoming->Side;
-                back.TimeInForce = incoming->TimeInForce;
-                back.Display = incoming->Display;
-                back.Capacity = incoming->Capacity;
-                back.InterMarketSweepEligibility = incoming->InterMarketSweepEligibility;
-                back.CrossType = incoming->CrossType;
+                    memcpy(back.ClOrdID, incoming->ClOrdID, 14);
+                    memcpy(back.Symbol, incoming->Symbol, 8);
+                    back.UserRefNum = incoming->UserRefNum;
+                    back.Price = incoming->Price;
+                    back.Quantity = incoming->Quantity;
+                    back.Side = incoming->Side;
+                    back.TimeInForce = incoming->TimeInForce;
+                    back.Display = incoming->Display;
+                    back.Capacity = incoming->Capacity;
+                    back.InterMarketSweepEligibility = incoming->InterMarketSweepEligibility;
+                    back.CrossType = incoming->CrossType;
 
-                back.State = 'L';
-                back.OrderID = htobe64(exchange_order_id);
-                exchange_order_id++;
+                    back.State = 'L';
+                    back.OrderID = htobe64(exchange_order_id);
+                    exchange_order_id++;
 
-                send(sock, &back, sizeof(back), 0);
+                    send(sock, &back, sizeof(back), 0);
 
-                cout << "Sent ACK for UserRefNum: " << ntohl(back.UserRefNum) << "\n";
+                    cout << "Sent ACK for UserRefNum: " << ntohl(back.UserRefNum) << " Exchange orderID: " << exchange_order_id-1 << "\n";
 
+                    processed += sizeof(EnterOrder);
+                }
             }
         } else if (size == 0) {
             cout << "engine disconnected\n";
             break;
         }
+
     }
 
 
@@ -183,7 +189,7 @@ int main() {
     udp_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost ip address
 
     std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr);
-    cout << "UDP thread started";
+    cout << "UDP thread started\n";
 
     //tcp
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
