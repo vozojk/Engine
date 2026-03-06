@@ -36,6 +36,7 @@ int main() {
         perror("Socket creation failed");
         return 1;
     }
+    set_nonblocking(udp_sock);
     //set fileds and make addr struct
     sockaddr_in local_addr{};
     local_addr.sin_family = AF_INET;
@@ -87,7 +88,10 @@ int main() {
     ev.data.fd = tcp_sock;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tcp_sock, &ev);
 
-    uint8_t buffer[2048]; //buffer for the packet, 2048 just to be sure
+
+    uint8_t udpBuffer[2048]; //buffer for the packet, 2048 just to be sure
+    uint8_t tcpBuffer[2048];
+    std::vector<char> stage; //vector to keep unfinished packets
     //each should be max like 50 though
     int count = 1;
     auto batch_start_time = std::chrono::high_resolution_clock::now(); //start clock
@@ -97,42 +101,83 @@ int main() {
 
         for (int i = 0; i < socketNum; i++) {
             //UDP
+
             if (events[i].data.fd == udp_sock) {
                 //loop until empty since we use edge triggered
-                int size = recvfrom(udp_sock, buffer, sizeof(buffer), 0, nullptr, nullptr);
-                if (size > 0) {
+                while (true) {
+                    int size = recvfrom(udp_sock, udpBuffer, sizeof(udpBuffer), 0, nullptr, nullptr);
 
-                    size_t offset = 0;
-                    int messages_in_bundle = 0;
-
-                    while (offset < (size_t)size) {
-
-                        uint16_t len;
-                        std::memcpy(&len, buffer+offset,2);
-                        len = ntohs(len);
-
-                        offset+=2;//for len
-
-                        if (offset + len > (size_t)size) {
-                            std::cerr << "Corrupted packet: Incomplete message \n";
-                            break;
-                        }
-
-                        char* msg = (char*)buffer+offset;
-
-                        ITCHParser::parse(msg, &AllBooks[0]);
-
-                        offset += len;
-                        messages_in_bundle++;
+                    if (size < 0) {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK) break; // Buffer is empty! Go back to sleep.
+                        perror("UDP recvfrom error");
+                        break;
                     }
 
-                    //cout << "Divided packet into " << messages_in_bundle << "messages \n";
+                    if (size > 0) {
+
+                        size_t offset = 0;
+                        int messages_in_bundle = 0;
+
+                        while (offset < (size_t)size) {
+
+                            uint16_t len;
+                            std::memcpy(&len, udpBuffer+offset,2);
+                            len = ntohs(len);
+
+                            offset+=2;//for len
+
+                            if (offset + len > (size_t)size) {
+                                std::cerr << "Corrupted packet: Incomplete message \n";
+                                break;
+                            }
+
+                            char* msg = (char*)udpBuffer+offset;
+
+                            count++;
+
+                            ITCHParser::parse(msg, AllBooks);
+
+                            offset += len;
+                            messages_in_bundle++;
+                        }
+
+                        //cout << "Divided packet into " << messages_in_bundle << " messages \n";
+                    }else if (size == 0) {
+                        cout << "engine disconnected \n"; break;
+                    }
                 }
                 //TCP
             }else if (events[i].data.fd == tcp_sock) {
                 //ET
-                while (recv(tcp_sock, buffer, sizeof(buffer), 0) > 0) {
-                    OUCH::Inbound::parse(reinterpret_cast<char*>(buffer));
+                while (true){
+                    int size = recv(tcp_sock, tcpBuffer, sizeof(tcpBuffer), 0);
+
+                    if (size < 0) {
+                        if (errno == EAGAIN || errno == EWOULDBLOCK) break; // Buffer is empty! Go back to sleep.
+                        perror("TCP recvfrom error");
+                        break;
+                    }
+
+                    stage.insert(stage.end(), tcpBuffer, tcpBuffer+size);
+
+                    while (!stage.empty()) {
+
+                        size_t expected = sizeof(Accepted);
+
+                        if (stage.size() < expected) {
+                            cout << "INCOMPLETE \n";
+                            break; //not enough bytes on the stage for a full message
+                        }
+
+                        count++;
+
+                        OUCH::Inbound::parse(stage.data());
+
+                        stage.erase(stage.begin(), stage.begin()+expected);
+
+
+
+                    }
                 }
             }
 
@@ -140,7 +185,7 @@ int main() {
 
 
 
-        count++;
+
 
         if (count % 100000 == 0) {
             auto batch_end_time = high_resolution_clock::now();
