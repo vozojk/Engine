@@ -6,6 +6,7 @@
 #include <cerrno>
 #include <sys/epoll.h>
 #include <fcntl.h>
+#include <netinet/tcp.h>//to disable Nagle's algorithm
 
 #include "Order_Book.hpp"
 #include "Parser.hpp"
@@ -62,7 +63,8 @@ int main() {
 
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0); //init
     set_nonblocking(tcp_sock); //set nonblocking so ET works
-
+    int flag = 1;
+    setsockopt(tcp_sock, IPPROTO_TCP, TCP_NODELAY, &flag, sizeof(flag));
     //make address struct
     sockaddr_in tcp_addr{};
     tcp_addr.sin_family = AF_INET; //ipv4
@@ -84,7 +86,7 @@ int main() {
     }else cout << "What happened?!?";
 
     //epoll setup
-    ev.events = EPOLLIN | EPOLLET;
+    ev.events = EPOLLIN | EPOLLET | EPOLLOUT;
     ev.data.fd = tcp_sock;
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, tcp_sock, &ev);
 
@@ -148,6 +150,24 @@ int main() {
                 }
                 //TCP
             }else if (events[i].data.fd == tcp_sock) {
+                //check if connection completed
+                if (events[i].events & EPOLLOUT) {
+                    int err = 0;
+                    socklen_t errlen = sizeof(err);
+                    getsockopt(tcp_sock, SOL_SOCKET, SO_ERROR, &err, &errlen);
+
+                    if (err == 0) {
+                        cout << "TCP connection established\n";
+
+                        ev.events = EPOLLIN | EPOLLET; //epollout sends out all the time about the buffer being empty, it doesn't really get full we can optimize by not having it
+                        ev.data.fd = tcp_sock;
+                        epoll_ctl(epoll_fd, EPOLL_CTL_MOD, tcp_sock, &ev);
+                    } else {
+                        cerr << "TCP failed: " << strerror(err) << "\n";
+                        close(tcp_sock);
+                        return 0;
+                    }
+                }
                 //ET
                 while (true){
                     int size = recv(tcp_sock, tcpBuffer, sizeof(tcpBuffer), 0);
