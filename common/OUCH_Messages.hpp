@@ -14,7 +14,7 @@
 
 enum class OrderState : uint8_t;
 
-struct SystemEvent { //type = 'S'
+struct SystemEventOUCH { //type = 'S'
     char Type;
     uint64_t Timestamp;
     char EventCode;

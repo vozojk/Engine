@@ -65,13 +65,13 @@ namespace ITCHParser {
     }
 
     // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-    inline void parse(char* ptr, size_t end, OrderBook books[]) {
+    inline void parse(char* ptr, OrderBook books[]) {
         //now the function runs for 1 packet only
             switch (ptr[0]) {
                 // switch for message type
 
                 case ('S'):{
-                    SystemEvent* event = reinterpret_cast<SystemEvent*>(ptr);; //creates struct
+                    SystemEventITCH* event = reinterpret_cast<SystemEventITCH*>(ptr);; //creates struct
                     //assigns type since it got eaten by the header
 
 

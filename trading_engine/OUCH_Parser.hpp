@@ -8,14 +8,14 @@
 #include <iostream>
 #include <fstream>
 
-#include "../trading_engine/Order_Book.hpp"
+#include "Order_Book.hpp"
 
 #include <cstdint>
 #include <vector>
 #include <chrono> // <--- THE HEADER
 #include <cstring>
 
-#include "OUCH_Messages.hpp"
+#include "../common/OUCH_Messages.hpp"
 using namespace std::chrono;
 using namespace std;
 
@@ -46,15 +46,13 @@ namespace OUCH {
 
 
         // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
-        inline void parse(char* ptr, char* end) { //need to handle partial messages
+        inline void parse(char* ptr) { //need to handle partial messages
 
-            while (ptr < end) {
-                char Type = *reinterpret_cast<char*>(ptr);
 
-                switch (Type) {
+                switch (*reinterpret_cast<char*>(ptr)) {
                     case 'S': {
-                        SystemEvent* msg = reinterpret_cast<SystemEvent*>(ptr);
-                        ptr+=sizeof(SystemEvent);
+                        SystemEventOUCH* msg = reinterpret_cast<SystemEventOUCH*>(ptr);
+                        ptr+=sizeof(SystemEventOUCH);
                         break;
                     }
 
@@ -141,8 +139,6 @@ namespace OUCH {
                     }
 
                 }
-
-            }
         }
     }
 

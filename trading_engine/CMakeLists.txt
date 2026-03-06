@@ -8,7 +8,7 @@ add_executable(engine
         Parser.hpp
         ../common/ITCH_Messages.hpp
         ../common/Types.hpp
-        ../common/OUCH_Parser.hpp
+        OUCH_Parser.hpp
         ../common/OUCH_Messages.hpp
 )
 

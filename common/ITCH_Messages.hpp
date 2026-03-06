@@ -20,7 +20,7 @@ struct MessageHeader {
     char MessageType; //type for the message
 };
 
-struct SystemEvent {
+struct SystemEventITCH {
     char MessageType; //type for the message ('S')
     uint16_t StockLocate; //id of stock, always 0 for system msg
     uint16_t TrackingNumber; //nasdaq tracking number
@@ -29,7 +29,7 @@ struct SystemEvent {
 };
 
 // check for system event size correctness
-static_assert(sizeof(SystemEvent) == 12, "ITCH SystemEvent struct size mismatch!");
+static_assert(sizeof(SystemEventITCH) == 12, "ITCH SystemEvent struct size mismatch!");
 
 struct StockDirectory {
     char MessageType; //type for the message ('R');

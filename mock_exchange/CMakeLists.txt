@@ -4,7 +4,7 @@ add_executable(exchange
         main.cpp
         ../common/ITCH_Messages.hpp
         ../common/Types.hpp
-        ../common/OUCH_Parser.hpp
+        ../trading_engine/OUCH_Parser.hpp
         ../common/OUCH_Messages.hpp
 )
 
