@@ -76,7 +76,7 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         }
         current_offset += len; //advance pointer to the next message
         //cout << "sent" << len << "bytes";
-        //usleep(50);
+        usleep(50);
         if (counter % 1000000 == 0) {
             auto end_time = std::chrono::high_resolution_clock::now();
             time(start_time, end_time, 1000000);
