@@ -78,18 +78,18 @@ struct Rejected { // type = 'J'
 };
 
 struct EnterOrder { // type = 'O'
-    char ClOrdID[14]; //order ID assigned by sender of the order (not NASDAQ)
-    uint64_t Price;
-    char Symbol[8];
-    uint32_t UserRefNum; //starts at 1, global order counter
-    uint32_t Quantity;
     char Type;
+    uint32_t UserRefNum; //starts at 1, global order counter
     char Side;
+    uint32_t Quantity;
+    char Symbol[8];
+    uint64_t Price;
     char TimeInForce;
     char Display; //Y=visible, N=hidden, A=attributable, Z=conformant
     char Capacity;
     char InterMarketSweepEligibility; //Y/N
     char CrossType;
+    char ClOrdID[14]; //order ID assigned by sender of the order (not NASDAQ)
 
     //will not send any optionals
 };
