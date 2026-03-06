@@ -67,7 +67,7 @@ int main() {
     sockaddr_in tcp_addr{};
     tcp_addr.sin_family = AF_INET; //ipv4
     tcp_addr.sin_port = htons(9000);
-    inet_pton(AF_INET, "172.28.197.104", &tcp_addr.sin_addr); //stores address
+    inet_pton(AF_INET, "127.0.0.1", &tcp_addr.sin_addr); //stores address
     int state = connect(tcp_sock, (struct sockaddr*)&tcp_addr, sizeof(tcp_addr)); //establish connection
 
     //logs
@@ -142,8 +142,8 @@ int main() {
                         }
 
                         //cout << "Divided packet into " << messages_in_bundle << " messages \n";
-                    }else if (size == 0) {
-                        cout << "engine disconnected \n"; break;
+                    }else {
+                        cout << "exchange disconnected \n"; break;
                     }
                 }
                 //TCP
@@ -151,7 +151,10 @@ int main() {
                 //ET
                 while (true){
                     int size = recv(tcp_sock, tcpBuffer, sizeof(tcpBuffer), 0);
-
+                    if (size == 0) {
+                        cout << "peer disconnected \n";
+                        break;
+                    }
                     if (size < 0) {
                         if (errno == EAGAIN || errno == EWOULDBLOCK) break; // Buffer is empty! Go back to sleep.
                         perror("TCP recvfrom error");
@@ -183,10 +186,6 @@ int main() {
 
         }
 
-
-
-
-
         if (count % 100000 == 0) {
             auto batch_end_time = high_resolution_clock::now();
 
@@ -212,6 +211,8 @@ int main() {
 
 
     }
-
+    //not reachable right now but i would forget later
+    close(tcp_sock);
+    close(epoll_fd);
     close(udp_sock);
 }
