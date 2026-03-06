@@ -60,8 +60,6 @@ namespace ITCHParser {
             std::cout << "\033[H\033[2J" << std::flush;
             std::cout << "StockLocate " << i << " " << stock_directory[i] << " is active:" << std::endl;
             books[i].printStats();
-            std::cout << "StockLocate " << 547 << " " << stock_directory[547] << " is active:" << std::endl;
-            books[547].printStats();
 
         }
     }
@@ -121,7 +119,7 @@ namespace ITCHParser {
 
                     //add order to the book, disregard locate for now
                     books[locate].addOrder(shares, orderID, locate, side, price);
-                    cout << "ORDER \n";
+
                     break;
                 }
 
