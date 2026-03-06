@@ -62,12 +62,13 @@ namespace OUCH {
                         MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1]; //todo NOT SWAPPED
 
                         order->active = OrderState::LIVE;
-                        msg->Price = bswap64(msg->Price);
-                        msg->Timestamp = bswap64(msg->Timestamp);
-                        msg->Quantity =  bswap32(msg->Quantity);
-                        cout << "ORDER ACCEPTED. \n" << "SYMBOL: " << msg->Symbol <<" \n TIMESTAMP: " << msg->Timestamp <<
-                            "\n QUANTITY: " << msg->Quantity <<
-                            "\n PRICE: " << msg->Price << "\n";
+                        const uint64_t price = bswap64(msg->Price);
+                        const uint64_t timestamp = bswap64(msg->Timestamp);
+                        const uint32_t quantity =  bswap32(msg->Quantity);
+
+                        cout << "ORDER ACCEPTED. \n" << "SYMBOL: " << msg->Symbol <<" \n TIMESTAMP: " << timestamp <<
+                            "\n QUANTITY: " << quantity <<
+                            "\n PRICE: " << price << "\n";
                         break;
                     }
 
