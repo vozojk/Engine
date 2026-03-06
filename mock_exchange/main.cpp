@@ -35,7 +35,7 @@ void logTime(auto start_time, auto end_time, int counter) {
     cout << "------------------------------------------------" << endl;
 }
 
-void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_in dest) {
+void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_in dest, int sleep_us) {
     sleep(10);
     int fd = open(filename, O_RDONLY); //get a file descriptor for the bin file
     if (fd < 0) {
@@ -81,7 +81,7 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         }
         current_offset += len; //advance pointer to the next message
         //cout << "sent" << len << "bytes";
-        usleep(5);
+        usleep(sleep_us);
         if (counter % 1000000 == 0) {
             auto end_time = std::chrono::high_resolution_clock::now();
             logTime(start_time, end_time, 1000000);
@@ -171,8 +171,20 @@ void tcpResponder(int fd) {
 
 }
 //inialize sockets and start threads for tcp and udp
-int main() {
+int main(int argc, char* argv[]) {
+    int sleep_us = 5;
+    //set sleep duration
+    if (argc > 1) {
+        try {
+            sleep_us = std::stoi(argv[1]);
 
+            if (sleep_us < 0) sleep_us = 0;
+        } catch (const std::exception& e) {
+            std:cerr << "INVALID ARGUMENT. Setting Default (5us)";
+            sleep_us = 5;
+        }
+    }
+    cout << "Starting exchange with UDP cannon delay of " << sleep_us << " microseconds.\n";
 
     //udp
     int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -188,7 +200,7 @@ int main() {
     udp_addr.sin_port = htons(12345); //big endian port
     udp_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost ip address
 
-    std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr);
+    std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr, sleep_us);
     cout << "UDP thread started\n";
 
     //tcp
