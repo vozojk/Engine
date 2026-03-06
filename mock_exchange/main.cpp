@@ -82,6 +82,11 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         current_offset += len; //advance pointer to the next message
         //cout << "sent" << len << "bytes";
         //need to use an if wrap since otherwise usleep gets called even with 0, it is a sched_yield() syscall which damages performance a lot for this usecase
+        //it is also incredibly interesting that when im at sleep(0), the engine gets overwhelmed, obviously since the throughput is like 400k/sec,
+        //but the point is epoll never even gets to the TCP packets because the UDP queue is completely overflowing effectivelly stuck in a
+        //events[i].data.fd == udp_sock condition while(true) loop since that breaks only with an error or EAGAIN
+        //todo read quota to limit the numbers of packets read so this doesnt happen
+        //todo a busy loop is also a great idea since it gives a much bigger waiting resolution
         if (sleep_us > 0) {
             usleep(sleep_us);
         }

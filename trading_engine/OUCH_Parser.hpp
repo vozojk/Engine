@@ -65,7 +65,7 @@ namespace OUCH {
                         const uint64_t price = bswap64(msg->Price);
                         const uint64_t timestamp = bswap64(msg->Timestamp);
                         const uint32_t quantity =  bswap32(msg->Quantity);
-
+                        //todo implement asynchronous logging via a ring buffer so i dont pay for a syscall each time I want to actually see something
                         cout << " ----------------------------------- \nORDER ACCEPTED \n" <<
                             "SYMBOL: " << msg->Symbol <<
                             " \n TIMESTAMP: " << timestamp <<
