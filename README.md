@@ -97,7 +97,7 @@ The single biggest realization from this project: **context switches are the ene
 
 ### The Mock Exchange
 
-The exchange uses `mmap` to map a ~GB historical `market.bin` file directly into virtual memory, bypassing `read()` and the kernel page cache entirely. The kernel is smart enough to prefetch sequential pages, so we get near-zero I/O overhead.
+The exchange uses `mmap` to map a ~8GB historical `market.bin` file directly into virtual memory, bypassing `read()` and the kernel page cache entirely. The kernel is smart enough to prefetch sequential pages, so we get near-zero I/O overhead.
 
 Messages get bundled up to the MTU limit (~1400 bytes) before hitting `sendto()`, amortizing the syscall cost across ~40 messages per packet. The engine side unpacks the bundle by reading the 2-byte length prefix of each message and advancing through the buffer.
 
