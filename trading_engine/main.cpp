@@ -95,6 +95,7 @@ int main() {
     uint8_t tcpBuffer[2048];
     std::vector<char> stage; //vector to keep unfinished packets
     //each should be max like 50 though
+    int total = 0;
     int count = 1;
     auto batch_start_time = std::chrono::high_resolution_clock::now(); //start clock
     while (true) {//loop for new packet
@@ -207,22 +208,29 @@ int main() {
 
         }
 
-        if (count % 100000 == 0) {
+        if (count > 1000000) {
+
+
+
             auto batch_end_time = high_resolution_clock::now();
 
-            // Calculate how long this batch of 100k took
+            // Calculate how long this batch of 1M took
             auto duration_us = duration_cast<microseconds>(batch_end_time - batch_start_time).count();
 
             // Throughput: (Messages / Microseconds) * 1,000,000 = Messages per Second
-            double msgs_per_sec = (100000.0 / duration_us) * 1000000.0;
+            //todo why the hell did moving the 1M inside make it so much faster??
+            double msgs_per_sec = ((count* 1000000.0) / duration_us) ;
 
             // Latency: Average nanoseconds per message
             auto duration_ns = duration_cast<nanoseconds>(batch_end_time - batch_start_time).count();
-            double ns_per_msg = (double)duration_ns / 100000.0;
+            double ns_per_msg = (double)duration_ns / count;
 
             std::cout << "[TELEMETRY] Processed " << count << " msgs | "
                       << "Throughput: " << msgs_per_sec << " msgs/sec | "
-                      << "Avg Latency: " << ns_per_msg << " ns/msg" << std::endl;
+                      << "Avg Latency: " << ns_per_msg << " ns/msg | Total: " << total << std::endl;
+
+            total+=count; //reset counter and add it to total
+            count = 1;
 
             // Reset the clock for the next batch
             batch_start_time = high_resolution_clock::now();
