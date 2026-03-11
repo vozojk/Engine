@@ -114,7 +114,7 @@ int main() {
                         perror("UDP recvfrom error");
                         break;
                     }
-
+                    //todo could cause garbage data or segfaults, the length is 2 bytes but if the packet gets corrupted and sends one byte i will read unrelated data, need to check if size >=2
                     if (size > 0) {
 
                         size_t offset = 0;
@@ -123,8 +123,8 @@ int main() {
                         while (offset < (size_t)size) {
 
                             uint16_t len;
-                            std::memcpy(&len, udpBuffer+offset,2);
-                            len = ntohs(len);
+                            std::memcpy(&len, udpBuffer+offset,2); //copy the 2 bytes with the lenght
+                            len = ntohs(len); //to small-endian
 
                             offset+=2;//for len
 
@@ -144,14 +144,14 @@ int main() {
                         }
 
                         //cout << "Divided packet into " << messages_in_bundle << " messages \n";
-                    }else {
+                    }else {//size == -1 when it disconnects
                         cout << "exchange disconnected \n"; break;
                     }
                 }
                 //TCP
             }else if (events[i].data.fd == tcp_sock) {
                 //check if connection completed
-                if (events[i].events & EPOLLOUT) {
+                if (events[i].events & EPOLLOUT) { //epollout is set when sock is writable, this being set for the first time means conn established
                     int err = 0;
                     socklen_t errlen = sizeof(err);
                     getsockopt(tcp_sock, SOL_SOCKET, SO_ERROR, &err, &errlen);
@@ -196,6 +196,7 @@ int main() {
 
                         OUCH::Inbound::parse(stage.data());
 
+                        //todo this is atrociously slow, it moves the entire vector start at zero every time i call erase, we can use a circular buffer (like a ring buffer for the nic) implemented with a normal array
                         stage.erase(stage.begin(), stage.begin()+expected);
 
 
