@@ -58,10 +58,11 @@ void OrderBook::deleteOrder(uint64_t OrderID) {
         Orders.erase(hashIt);
 
 }
-//this is basically the same as cancel order
+//this is basically the same as replace order
 //apparently the CPU keeps history of function calls and what happened after and makes predictions based on that
 //by separating them i make it more deterministic, the cpu will be right more often
 void OrderBook::reduceOrderSize(uint64_t OrderID, uint32_t executedShares) {
+        //cache miss nightmare
         auto hashIt = Orders.find(OrderID); //gives an iterator for the key value pair in the hashmap
 
         if (hashIt == Orders.end()) return;
@@ -87,7 +88,7 @@ void OrderBook::reduceOrderSize(uint64_t OrderID, uint32_t executedShares) {
                 Orders.erase(hashIt); //remove iterator from the hashmap
         }
         //nesting this would be smart since i check for the volume only if shares are 0
-        if (volume == 0) {
+        if (plList->orders.empty()) {
                 if (side == 'S') {
                         Asks.erase(Price);
                 }else {
