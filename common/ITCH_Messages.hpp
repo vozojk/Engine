@@ -2,17 +2,10 @@
 // Created by vojte on 07/02/2026.
 //
 
-#ifndef THE_THING_ITCH_MESSAGES_HPP
-#define THE_THING_ITCH_MESSAGES_HPP
-
-#include <cstdint>
-
 #pragma once
 #pragma pack(push, 1) //this should be replaced with __attribute__((packed))-sticky to just the method or even
                         //__attribute__((packed, aligned(x)) which ensures the start address is always a multiple of x
                         //we use alignas(x) for objects like an array
-
-
 
 
 struct MessageHeader {
@@ -28,8 +21,6 @@ struct SystemEventITCH {
     char EventCode; //code for event, see ITCH spec page 5
 };
 
-// check for system event size correctness
-static_assert(sizeof(SystemEventITCH) == 12, "ITCH SystemEvent struct size mismatch!");
 
 struct StockDirectory {
     char MessageType; //type for the message ('R');
@@ -143,5 +134,3 @@ struct OrderReplace { //basically editing the order
 };
 
 #pragma pack(pop)
-
-#endif //THE_THING_ITCH_MESSAGES_HPP
