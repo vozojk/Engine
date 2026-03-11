@@ -67,6 +67,8 @@ namespace ITCHParser {
     // TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
     inline void parse(char* ptr, std::vector<OrderBook> &books, int sock) {
         //now the function runs for 1 packet only
+        //todo refactor everything so i create variables and not edit the buffer directly, this makes the cache its stored in mark it as dirty and can't be requested by anything else
+        //todo when getting the values, the CPU gets unhappy when they are not aligned, it is better to do a memcpy into a local variable  which has safeguards and optimizations for unaligned memory
             switch (ptr[0]) {
                 // switch for message type
 
@@ -120,11 +122,11 @@ namespace ITCHParser {
                     //add order to the book, disregard locate for now
                     books[locate].addOrder(shares, orderID, locate, side, price);
                     const char symbol[8] = "APPL   ";
-                    if (stock_directory[locate].starts_with("AAPL")) {
-                        EnterOrder respond = OUCH::Outbound::enterOrder('B', "APPL    ", (price+1), shares);
-                        send(sock, &respond, sizeof(respond), 0);
-                        showStock(locate, books);
-                    }
+                    //if (stock_directory[locate].starts_with("AAPL")) {
+                    //    EnterOrder respond = OUCH::Outbound::enterOrder('B', "APPL    ", (price+1), shares);
+                    //    send(sock, &respond, sizeof(respond), 0);
+                    //    showStock(locate, books);
+                    //}
 
                     break;
                 }

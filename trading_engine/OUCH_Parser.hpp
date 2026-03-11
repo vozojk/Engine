@@ -20,7 +20,9 @@ using namespace std::chrono;
 using namespace std;
 
 namespace OUCH {
+    //todo overflow check for this
     inline MyOrder* tracker = new MyOrder[1000000]; //preallocated, my orders are small, instant access and mutation by id
+    //todo make this into an array, i can just hash the match number myself and achieve space locality and less cache misses
     inline unordered_map<uint64_t, ExecutionRecord> fillTracker; //key is the match number
     inline uint32_t userRefNum = 1; //should be persistent, needs to recover if app restarted
 
@@ -66,11 +68,11 @@ namespace OUCH {
                         const uint64_t timestamp = bswap64(msg->Timestamp);
                         const uint32_t quantity =  bswap32(msg->Quantity);
                         //todo implement asynchronous logging via a ring buffer so i dont pay for a syscall each time I want to actually see something
-                        cout << " ----------------------------------- \nORDER ACCEPTED \n" <<
-                            "SYMBOL: " << msg->Symbol <<
-                            " \n TIMESTAMP: " << timestamp <<
-                            "\n QUANTITY: " << quantity <<
-                            "\n PRICE: " << price/10000 << "." << price%10000 << "\n";
+                        //cout << " ----------------------------------- \nORDER ACCEPTED \n" <<
+                            //"SYMBOL: " << msg->Symbol <<
+                            //" \n TIMESTAMP: " << timestamp <<
+                            //"\n QUANTITY: " << quantity <<
+                            //"\n PRICE: " << price/10000 << "." << price%10000 << "\n";
                         break;
                     }
 
