@@ -2,8 +2,6 @@
 // Created by vojte on 14/02/2026.
 //
 
-#ifndef THE_THING_OUCH_MESSAGES_HPP
-#define THE_THING_OUCH_MESSAGES_HPP
 
 #pragma once
 #pragma pack(push, 1)
@@ -94,6 +92,9 @@ struct EnterOrder { // type = 'O'
     //will not send any optionals
 };
 
+#pragma pack(pop)
+//here because of CPU alignment, the padding is generally good and useful, the CPU uses it so the memory is aligned to chunks it can process efficiently, we strip it away
+//only for the network part because then the unpadded raw stream of fields wouldn't fit the struct (since there would be padding)
 struct MyOrder {//price, total, filled, symbol, active
 
     uint64_t price;
@@ -127,22 +128,6 @@ struct ExecutionRecord {
 //Preallocate order space for the whole day. Keep a daily id of orders.
 //goal is to manage an order book of my orders through enter order (so far) and the ouch responses i will simulate later.
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-#pragma pack(pop)
-
-#endif //THE_THING_OUCH_MESSAGES_HPP
 
 
 
