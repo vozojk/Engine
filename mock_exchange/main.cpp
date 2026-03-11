@@ -1,6 +1,7 @@
 //
 // Created by vojte on 04/03/2026.
 //
+//todo use perf to track where do i lose performance and valgrind --tool=cachegrind to track cache misses
 #include <chrono>
 #include <sys/socket.h>   // Core socket API
 #include <netinet/in.h>   // Internet address family
@@ -22,6 +23,7 @@ void busy_loop(uint64_t nanoseconds, double ghz) {
     uint64_t start = __rdtsc();
 
     // Spin the CPU until the cycle count is reached
+    //todo cool assembly link under the hood, it is possible to call the pause thing directly (__asm__ volatile ("pause")), take a look in inline assembly
     while (__rdtsc() - start < cycles_to_wait) {
         _mm_pause();
         // This hint tells the CPU it's in a spin-loop, saving power
@@ -75,6 +77,8 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
 
     while (current_offset < (size_t)st.st_size) { //loop for the entire file
         //this can apparently cause segfaults with mmap, todo reseach and fix
+        //apparently it is linked to accessing data we dont own, for example if i am right at the end of the file, the line will try to access 16 bits, but there might be only 8 (1 byte) left
+        //since we operate with raw non-virtual memory, this would just throw a segfault since there might be something completely different in the last 8 bits.
         uint16_t msg_len = ntohs(*(uint16_t*)(mapped_data + current_offset)); //get the current 2 bytes (msg_len) from the header and convert to small endian
 
         counter++;
@@ -101,7 +105,7 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
         //    usleep(sleep_us);
         //}
         //even more crazy that this runs much much faster at 5000ns than usleep at 1us
-        busy_loop(sleep_ns, 2.1);
+        busy_loop(sleep_ns, 1);
         if (counter % 1000000 == 0) {
             auto end_time = std::chrono::high_resolution_clock::now();
             logTime(start_time, end_time, 1000000);
@@ -201,7 +205,7 @@ int main(int argc, char* argv[]) {
             if (sleep_ns < 0) sleep_ns = 0;
         } catch (const std::exception& e) {
             std:cerr << "INVALID ARGUMENT. Setting Default (5us)";
-            sleep_ns = 5;
+            sleep_ns = 5000;
         }
     }
     cout << "Starting exchange with UDP cannon delay of " << sleep_ns << " nanoseconds.\n";
