@@ -149,7 +149,7 @@ The `Docs/` folder has two types of documentation for two very different purpose
 
 ## What's Next
 
-- **Kernel bypass (DPDK/AF_XDP)** — Skip the kernel network stack entirely. Map NIC ring buffers directly into user space. This is the real endgame for latency.
+- **Kernel bypass (DPDK/ef_vi)** — Skip the kernel network stack entirely. Map NIC ring buffers directly into user space. This is the real endgame for latency.
 - **Asynchronous logging** — Replace `cout` with a lock-free ring buffer drained by a dedicated I/O thread. Right now every print is a syscall that stalls the hot path.
 - **Read quota on the UDP loop** — The edge-triggered `epoll` loop currently drains the entire UDP buffer before checking TCP. Under heavy load this starves OUCH responses. Need to cap reads per wake-up.
 - **Risk management layer** — Position tracking by stock, exposure limits, and PnL.
