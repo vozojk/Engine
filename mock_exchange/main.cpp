@@ -16,8 +16,13 @@
 #include <netinet/tcp.h>
 #include <x86intrin.h>
 
+#include "Logger.hpp"
 #include "OUCH_Messages.hpp"
+#include "Types.hpp"
 using namespace std;
+
+MainLogger exchange_logger;
+
 void busy_loop(uint64_t nanoseconds, double ghz) {
     uint64_t cycles_to_wait = static_cast<uint64_t>(nanoseconds * ghz);
     uint64_t start = __rdtsc();
@@ -36,16 +41,22 @@ void logTime(auto start_time, auto end_time, int counter) {
     auto duration_ns = chrono::duration_cast<chrono::nanoseconds>(end_time - start_time);
 
     // 3. The Adrenaline Report
-    cout << "------------------------------------------------" << endl;
-    cout << "Processed " << counter << " messages." << endl;
-    cout << "Total Time: " << duration_us.count() << " microseconds ("
-         << duration_us.count() / 1000.0 << " ms)" << endl;
+    exchange_logger.log("------------------------------------------------");
+
+    exchange_logger.log("Processed %lu messages.", (unsigned long)counter);
+
+    exchange_logger.log("Total Time: %lld microseconds (%.3f ms)",
+                        (long long)duration_us.count(),
+                        (double)(duration_us.count() / 1000.0));
 
     // The "HFT" Metric: Time per message
     double ns_per_msg = (long double)duration_ns.count() / counter;
-    cout << "Latency: " << ns_per_msg << " ns/msg" << endl;
-    cout << "Throughput: " << (counter / (duration_us.count() / 1000000.0)) << " msgs/sec" << endl;
-    cout << "------------------------------------------------" << endl;
+    exchange_logger.log("Latency: %.2f ns/msg", (double)ns_per_msg);
+
+    exchange_logger.log("Throughput: %.2f msgs/sec",
+                        (double)(counter / (duration_us.count() / 1000000.0)));
+
+    exchange_logger.log("------------------------------------------------");
 }
 
 void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_in dest, int sleep_ns) {
@@ -127,7 +138,7 @@ void sendBundledData(const char* filename, int udp_sock, const struct sockaddr_i
 
 void tcpResponder(int fd) {
 
-    cout << "Waiting for connection \n";
+    exchange_logger.log("Waiting for connection \n");
     //wait for the accept socket of the engine
     struct sockaddr_in addr;
     socklen_t len = sizeof(addr);
@@ -138,7 +149,7 @@ void tcpResponder(int fd) {
         return;
     }
 
-    cout << "Engine connected \n";
+    exchange_logger.log("Engine connected \n");
 
     char buffer[2048];
     uint64_t exchange_order_id = 1;
@@ -178,13 +189,13 @@ void tcpResponder(int fd) {
 
                     send(sock, &back, sizeof(back), 0);
 
-                    cout << "Sent ACK for UserRefNum: " << ntohl(back.UserRefNum) << " Exchange orderID: " << exchange_order_id-1 << "\n";
+                    exchange_logger.log("Sent ACK for UserRefNum: %d Exchange orderID: %d\n", ntohl(back.UserRefNum), exchange_order_id-1);
 
                     processed += sizeof(EnterOrder);
                 }
             }
         } else if (size == 0) {
-            cout << "engine disconnected\n";
+            exchange_logger.log("engine disconnected\n");
             break;
         }
 
@@ -196,6 +207,10 @@ void tcpResponder(int fd) {
 }
 //inialize sockets and start threads for tcp and udp
 int main(int argc, char* argv[]) {
+
+    //initialize the logging object
+    exchange_logger.start();
+
     int sleep_ns = 5000;
     //set sleep duration
     if (argc > 1) {
@@ -208,7 +223,7 @@ int main(int argc, char* argv[]) {
             sleep_ns = 5000;
         }
     }
-    cout << "Starting exchange with UDP cannon delay of " << sleep_ns << " nanoseconds.\n";
+    exchange_logger.log("Starting exchange with UDP cannon delay of %d nanoseconds.\n", sleep_ns);
 
     //udp
     int udp_sock = socket(AF_INET, SOCK_DGRAM, 0);
@@ -225,7 +240,7 @@ int main(int argc, char* argv[]) {
     udp_addr.sin_addr.s_addr = inet_addr("127.0.0.1"); //localhost ip address
 
     std::thread udp(sendBundledData, "/home/vozojk/THE THING/resources/market.bin", udp_sock, udp_addr, sleep_ns);
-    cout << "UDP thread started\n";
+    exchange_logger.log("UDP thread started\n");
 
     //tcp
     int tcp_sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -248,6 +263,10 @@ int main(int argc, char* argv[]) {
 
     close(tcp_sock);
     close(udp_sock);
+
+    exchange_logger.stop();
+
+
     return 0;
 
 }
