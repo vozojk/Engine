@@ -15,8 +15,12 @@
 #include <vector>
 #include <chrono>
 
+#include "Logger.hpp"
+
 using namespace std::chrono;
 using namespace std;
+
+MainLogger engine_logger;
 
 int set_nonblocking(int fd) { //sets a socket to nonblocking so an empty queue doesn't make it wait but it immediatelly returns and checks again
     int flags = fcntl(fd, F_GETFL, 0); //gets the sock flags
@@ -24,6 +28,10 @@ int set_nonblocking(int fd) { //sets a socket to nonblocking so an empty queue d
 }//returns EAGAIN if the queue is empty
 
 int main() {
+
+    //initialize the logger object
+    engine_logger.start();
+
     // Pre-allocate a book for every possible StockLocate ID
     std::vector<OrderBook> AllBooks(65536);
 
@@ -51,7 +59,7 @@ int main() {
         return 1;//if the bind fails we return
     }
 
-    std::cout << "Listening (UDP) on port 12345" << std::endl;
+    engine_logger.log("Listening (UDP) on port 12345");
 
 
     //epoll UDP set
@@ -74,16 +82,19 @@ int main() {
 
     //logs
     if (state == 0) {
-        cout << "Connection established on port 9000 \n";
-    }else if (state == -1) {
+        engine_logger.log("Connection established on port 9000");
+    } else if (state == -1) {
         if (errno == EINPROGRESS) {
-            cout << "Handshake start successfull \n";
-        }else if (errno == ECONNREFUSED) {
-            cout << "Connection refused \n";
-        }else {
-            cout << "Error: " << std::strerror(errno) << "\n";
+            engine_logger.log("Handshake start successful");
+        } else if (errno == ECONNREFUSED) {
+            engine_logger.log("Connection refused");
+        } else {
+            // std::strerror returns a const char*, so we use %s
+            engine_logger.log("Error: %s", std::strerror(errno));
         }
-    }else cout << "What happened?!?";
+    } else {
+        engine_logger.log("What happened?!?");
+    }
 
     //epoll setup
     ev.events = EPOLLIN | EPOLLET | EPOLLOUT;
