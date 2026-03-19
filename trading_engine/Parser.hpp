@@ -12,7 +12,8 @@
 #include <fstream>
 
 #include "Order_Book.hpp"
-#include "../common/ITCH_Messages.hpp"
+#include "ITCH_Messages.hpp"
+#include "Types.hpp"
 
 #include <cstdint>
 #include <vector>
@@ -57,8 +58,8 @@ namespace ITCHParser {
 
     static inline void showStock(int i, std::vector<OrderBook> &books) {
         if (books[i].hasOrders()) {
-            std::cout << "\033[H\033[2J" << std::flush;
-            std::cout << "StockLocate " << i << " " << stock_directory[i] << " is active:" << std::endl;
+            engine_logger.log("\033[H\033[2J");
+            engine_logger.log("StockLocate %d %s is active:", i, &stock_directory[i]);
             books[i].printStats();
 
         }
@@ -262,7 +263,7 @@ namespace ITCHParser {
 
 
                 default: {
-                    //std::cout << "Unrecognized message type skipping..." << std::endl;
+                    engine_logger.log("Unrecognized message type skipping...");
                     break;
                 }
             }

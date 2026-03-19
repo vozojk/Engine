@@ -145,7 +145,7 @@ namespace OUCH {
                     }
 
                     default: {
-                        cout << "Message not recognized! Aborting buffer parse." << std::endl;
+                        engine_logger.log("Message not recognized! Aborting buffer parse.");
                         return; // Escape the while loop entirely
                     }
 
