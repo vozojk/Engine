@@ -6,7 +6,7 @@
 
 #include <iostream>
 
-#include "../common/Types.hpp"
+#include "Types.hpp"
 
 void OrderBook::addOrder(uint32_t Shares, uint64_t OrderID,
                          uint16_t StockLocate, char BuySell, uint32_t Price) {
@@ -148,28 +148,30 @@ void OrderBook::replaceOrder(const uint64_t oldOrderID,
 }
 
 void OrderBook::printStats() {
-        std::cout << "--- MARKET SNAPSHOT ---" << std::endl;
+        engine_logger.log("--- MARKET SNAPSHOT ---");
 
         if (Bids.empty()) {
-                std::cout << "Bids: EMPTY" << std::endl;
+                engine_logger.log("Bids: EMPTY");
         } else {
                 // Bids are sorted High-to-Low (std::greater), so begin() is the Highest Price
                 auto bestBid = Bids.begin();
-                std::cout << "Best Bid: " << bestBid->second.TotalVolume
-                          << " shrs @ $" << (bestBid->first / 10000.0) << std::endl;
+                engine_logger.log("Best Bid: %lu shrs @ $%.4f",
+                                  (unsigned long)bestBid->second.TotalVolume,
+                                  (double)(bestBid->first / 10000.0));
         }
 
         if (Asks.empty()) {
-                std::cout << "Asks: EMPTY" << std::endl;
+                engine_logger.log("Asks: EMPTY");
         } else {
                 // Asks are sorted Low-to-High (default), so begin() is the Lowest Price
                 auto bestAsk = Asks.begin();
-                std::cout << "Best Ask: " << bestAsk->second.TotalVolume
-                          << " shrs @ $" << (bestAsk->first / 10000.0) << std::endl;
+                engine_logger.log("Best Ask: %lu shrs @ $%.4f",
+                                  (unsigned long)bestAsk->second.TotalVolume,
+                                  (double)(bestAsk->first / 10000.0));
         }
 
-        std::cout << "Total Orders in Memory: " << Orders.size() << std::endl;
-        std::cout << "-----------------------" << std::endl;
+        engine_logger.log("Total Orders in Memory: %lu", (unsigned long)Orders.size());
+        engine_logger.log("-----------------------");
 }
 
 void OrderBook::cancelOrder(uint64_t OrderID, uint32_t Shares) {
