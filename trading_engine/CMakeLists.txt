@@ -10,6 +10,7 @@ add_executable(engine
         ../common/Types.hpp
         OUCH_Parser.hpp
         ../common/OUCH_Messages.hpp
+        ../common/Logger.hpp
 )
 
 # Crucial: This allows you to write #include "ITCH_Messages.hpp" in your .cpp files

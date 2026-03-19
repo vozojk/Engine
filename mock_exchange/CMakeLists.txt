@@ -6,6 +6,7 @@ add_executable(exchange
         ../common/Types.hpp
         ../trading_engine/OUCH_Parser.hpp
         ../common/OUCH_Messages.hpp
+        ../common/Logger.hpp
 )
 
 target_include_directories(exchange PRIVATE ${CMAKE_SOURCE_DIR}/common)
