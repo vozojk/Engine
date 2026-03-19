@@ -59,7 +59,7 @@ namespace ITCHParser {
     static inline void showStock(int i, std::vector<OrderBook> &books) {
         if (books[i].hasOrders()) {
             engine_logger.log("\033[H\033[2J");
-            engine_logger.log("StockLocate %d %s is active:", i, &stock_directory[i]);
+            engine_logger.log("StockLocate %d %s is active:", i, stock_directory[i].c_str());
             books[i].printStats();
 
         }
@@ -123,11 +123,11 @@ namespace ITCHParser {
                     //add order to the book, disregard locate for now
                     books[locate].addOrder(shares, orderID, locate, side, price);
                     const char symbol[8] = "APPL   ";
-                    //if (stock_directory[locate].starts_with("AAPL")) {
-                    //    EnterOrder respond = OUCH::Outbound::enterOrder('B', "APPL    ", (price+1), shares);
-                    //    send(sock, &respond, sizeof(respond), 0);
-                    //    showStock(locate, books);
-                    //}
+                    if (stock_directory[locate].starts_with("AAPL")) {
+                        EnterOrder respond = OUCH::Outbound::enterOrder('B', "APPL    ", (price+1), shares);
+                        send(sock, &respond, sizeof(respond), 0);
+                        showStock(locate, books);
+                    }
 
                     break;
                 }
@@ -263,7 +263,7 @@ namespace ITCHParser {
 
 
                 default: {
-                    engine_logger.log("Unrecognized message type skipping...");
+                    //engine_logger.log("Unrecognized message type skipping...");
                     break;
                 }
             }
