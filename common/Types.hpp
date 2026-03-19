@@ -7,6 +7,8 @@
 #include <cstdint>
 #include <list>
 
+#include "Logger.hpp"
+
 struct PriceLevel;
 
 struct Order { //ordered to not waste space since theres padding
@@ -31,6 +33,13 @@ struct PriceLevel {
         Price = 0;
     }
 };
+
+// Define the type once so all files agree on the capacity
+using MainLogger = Logger<65536>;
+
+// EXTERN tells the compiler: "This variable exists somewhere in the
+// binary, but don't create it here. Just reserve the name."
+extern MainLogger engine_logger;
 
 
 
