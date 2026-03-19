@@ -21,7 +21,7 @@ using namespace std::chrono;
 using namespace std;
 
 MainLogger engine_logger;
-
+//todo implement alerts when the engine starts dropping things
 int set_nonblocking(int fd) { //sets a socket to nonblocking so an empty queue doesn't make it wait but it immediatelly returns and checks again
     int flags = fcntl(fd, F_GETFL, 0); //gets the sock flags
     return fcntl(fd, F_SETFL, flags | O_NONBLOCK); //ORs the flags with the nonblock flag and sets them
@@ -236,9 +236,11 @@ int main() {
             auto duration_ns = duration_cast<nanoseconds>(batch_end_time - batch_start_time).count();
             double ns_per_msg = (double)duration_ns / count;
 
-            std::cout << "[TELEMETRY] Processed " << count << " msgs | "
-                      << "Throughput: " << msgs_per_sec << " msgs/sec | "
-                      << "Avg Latency: " << ns_per_msg << " ns/msg | Total: " << total << std::endl;
+            engine_logger.log("[TELEMETRY] Processed %lu msgs | Throughput: %.2f msgs/sec | Avg Latency: %.2f ns/msg | Total: %lu",
+                  (unsigned long)count,
+                  (double)msgs_per_sec,
+                  (double)ns_per_msg,
+                  (unsigned long)total);
 
             total+=count; //reset counter and add it to total
             count = 1;
