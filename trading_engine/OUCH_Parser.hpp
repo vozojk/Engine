@@ -54,6 +54,7 @@ namespace OUCH {
         inline void parse(char* ptr) { //need to handle partial messages
 
 
+
                 switch (*reinterpret_cast<char*>(ptr)) {
                     case 'S': {
                         SystemEventOUCH* msg = reinterpret_cast<SystemEventOUCH*>(ptr);
@@ -64,6 +65,7 @@ namespace OUCH {
                     case 'A': {
                         Accepted* msg = reinterpret_cast<Accepted*>(ptr);
                         ptr+=sizeof(Accepted);
+
                         MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1]; //todo NOT SWAPPED
 
                         order->active = OrderState::LIVE;
@@ -161,6 +163,11 @@ namespace OUCH {
         inline EnterOrder enterOrder(char Side, char Symbol[8], uint64_t Price, uint32_t Quantity) {
             EnterOrder order{};
 
+            if (userRefNum>1e6) {
+                engine_logger.log("[ERROR] --------------- ORDER ARRAY FULL!!! ---------------");//overflow check
+                return order;
+            }
+
             order.Type = 'O';
             order.UserRefNum = bswap32(userRefNum); //could use htobe64 but this is more direct (htobe checks for cpu endianness)
 
@@ -201,6 +208,8 @@ namespace OUCH {
             myOrder->active = OrderState::PENDING_NEW;
 
             userRefNum++;
+
+
 
             return order;
 

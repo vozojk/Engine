@@ -125,6 +125,7 @@ namespace ITCHParser {
                     const char symbol[8] = "APPL   ";
                     if (stock_directory[locate].starts_with("AAPL")) {
                         EnterOrder respond = OUCH::Outbound::enterOrder('B', "APPL    ", (price+1), shares);
+                        if (respond.Type != 'O')break; //check for bad order
                         send(sock, &respond, sizeof(respond), 0);
                         showStock(locate, books);
                     }
