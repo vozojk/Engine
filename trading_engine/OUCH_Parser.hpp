@@ -22,8 +22,11 @@ using namespace std;
 namespace OUCH {
     //todo overflow check for this
     inline MyOrder* tracker = new MyOrder[1000000]; //preallocated, myOrders are small, instant access and mutation by id
-    //todo implement a ring buffer for the fillTracker
-    inline unordered_map<uint64_t, ExecutionRecord> fillTracker; //key is the match number
+
+    constexpr size_t RING_BUFFER_SIZE = 1 << 27; // 134 Million slots, this can be increased if i wanna cover the full day to 28 (about 4.2GB of RAM) and then i dont have to do the mask since it will just fit everything
+    constexpr size_t RING_BUFFER_MASK = RING_BUFFER_SIZE - 1; //this implementation is pretty clunky but it is more of a proof of awareness than actual fix
+    inline ExecutionRecord* fillTracker = new ExecutionRecord[RING_BUFFER_SIZE]();
+
     inline uint32_t userRefNum = 1; //should be persistent, needs to recover if app restarted
 
     // 1. Swap 16-bit (2 bytes) - used for Lengths and Message Types
@@ -104,7 +107,7 @@ namespace OUCH {
                         order->filledQuantity += filled;
 
                         //update fill tracker
-                        fillTracker[bswap64(msg->MatchNumber)].filled_qty += filled;
+                        fillTracker[bswap64(msg->MatchNumber) & RING_BUFFER_MASK].filled_qty += filled;
 
                         if (open == 0) order->active = OrderState::FILLED;
                         else order->active = OrderState::PARTIALLY_FILLED;
@@ -116,7 +119,7 @@ namespace OUCH {
                         Broken* msg = reinterpret_cast<Broken*>(ptr);
                         ptr+=sizeof(Broken);
 
-                        uint32_t filled = fillTracker[bswap64(msg->MatchNumber)].filled_qty;
+                        uint32_t filled = fillTracker[bswap64(msg->MatchNumber) & RING_BUFFER_MASK].filled_qty;
 
                         MyOrder* order = &tracker[bswap32(msg->UserRefNum)-1];
 
