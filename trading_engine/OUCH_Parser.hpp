@@ -22,9 +22,7 @@ using namespace std;
 namespace OUCH {
     //todo overflow check for this
     inline MyOrder* tracker = new MyOrder[1000000]; //preallocated, myOrders are small, instant access and mutation by id
-    //todo flatten the structure for the hashmap to achieve less cache misses and spatial locality
-    //todo this will be done by implementing a global preallocated page buffer with ~50k (to research) pages each having 1000 priceLevel
-    //todo entries covering $10, the pointers to these will get distributed on demand to order books needing a page for a $10 bracked it doesnt have yet
+    //todo implement a ring buffer for the fillTracker
     inline unordered_map<uint64_t, ExecutionRecord> fillTracker; //key is the match number
     inline uint32_t userRefNum = 1; //should be persistent, needs to recover if app restarted
 
